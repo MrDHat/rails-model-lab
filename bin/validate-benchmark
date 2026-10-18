@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+revision="$(cat benchmark-revision.txt)"
+test "$(git -C vendor/ai-evals rev-parse HEAD)" = "$revision"
+if [ -n "$(git -C vendor/ai-evals status --porcelain)" ]; then
+  echo "Benchmark checkout has changes; inspect them before validation." >&2
+  exit 1
+fi
+for agent in oracle nop; do
+  bundle exec lemans run --bench vendor/ai-evals --backend docker \
+    --task at-announce-once --agent "$agent" --attempts 1 --concurrency 1 \
+    --runs-dir "runs/validation-$agent"
+done
