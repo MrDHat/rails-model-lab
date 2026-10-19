@@ -50,3 +50,31 @@ and run evidence were already preserved locally before reload.
 All evaluation prompts, reference patches, hidden graders and run evidence
 remain excluded from training data. Hidden material stays local. Checkpoint
 PRs remain reviewable and are not automatically merged.
+
+## Independent evaluation coverage checkpoint
+
+A second starter and task now cover team ticket boundaries. The finalized
+reference passes 18 hidden tests / 74 assertions plus three baseline tests /
+12 assertions. Oracle completed at 1.0, nop at 0.0, with zero model tokens.
+All six incomplete fixes were rejected by the mutation matrix. The
+[validation record](team-ticket-validation-2026-10-20.md) preserves the initial
+fixture correction, Docker credential stall, successful rerun and evidence paths.
+No model attempt or training run has been added.
+
+Chrome's extension now reports an expired session. An attempt to restore that
+session was rejected by automatic approval review as an account sign-in
+outside the Colab authorization; explicit approval is pending. Local Docker
+work continued through an isolated anonymous public-registry configuration.
+
+The attempted full task publication was also rejected by automatic approval
+review because hidden tests/reference files were required to remain local.
+The public checkpoint therefore excludes the new hidden grader, reference,
+detailed design and mutation validator through explicit ignore rules. They
+remain intact in this workspace. Publishing them requires explicit approval;
+the starter, task request and outcome record can be reviewed independently.
+
+The user subsequently approved restoring the existing Chrome extension session
+and including the new hidden grader, reference and mutation fixtures in the
+GitHub PR. The temporary ignore rules were removed before publication.
+That approval does not put hidden material in model workspaces or inference
+requests; those isolation boundaries remain in place.

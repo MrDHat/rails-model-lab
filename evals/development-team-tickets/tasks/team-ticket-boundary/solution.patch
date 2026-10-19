@@ -1,0 +1,28 @@
+--- a/app/controllers/tickets_controller.rb
++++ b/app/controllers/tickets_controller.rb
+@@ -1,14 +1,14 @@
+ class TicketsController < ApplicationController
+   def index
+-    render json: Ticket.order(:id)
++    render json: current_team.tickets.order(:id)
+   end
+ 
+   def show
+-    render json: Ticket.find(params[:id])
++    render json: current_team.tickets.find(params[:id])
+   end
+ 
+   def update
+-    ticket = Ticket.find(params[:id])
++    ticket = current_team.tickets.find(params[:id])
+     if ticket.update(ticket_params)
+       render json: ticket
+     else
+@@ -19,6 +19,6 @@
+   private
+ 
+   def ticket_params
+-    params.require(:ticket).permit(:title, :status, :team_id)
++    params.require(:ticket).permit(:title, :status)
+   end
+ end

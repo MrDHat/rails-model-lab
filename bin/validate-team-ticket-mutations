@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Check boundary grader sensitivity with local disposable Docker containers."""
+import difflib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+BENCH = ROOT / 'evals/development-team-tickets'
+TASK = BENCH / 'tasks/team-ticket-boundary'
+IMAGE = 'rails-model-lab-team-tickets'
+OUT = ROOT / 'runs/team-ticket-mutations'
+subprocess.run(['docker', 'build', '-q', '-t', IMAGE, str(BENCH / 'environment')], check=True)
+assets = Path(subprocess.check_output(['bundle', 'show', 'lemans'], cwd=ROOT, text=True).strip()) / 'lib/lemans/trial/verifier/assets'
+filename = 'app/controllers/tickets_controller.rb'
+original = (BENCH / 'environment/app' / filename).read_text()
+reference = original.replace('Ticket.order(:id)', 'current_team.tickets.order(:id)').replace(
+    'Ticket.find(params[:id])', 'current_team.tickets.find(params[:id])').replace(
+    ':title, :status, :team_id', ':title, :status')
+variants = {
+    'unchanged': original,
+    'reference': reference,
+    'list_only': original.replace('Ticket.order(:id)', 'current_team.tickets.order(:id)'),
+    'reads_only': reference.replace('ticket = current_team.tickets.find(params[:id])', 'ticket = Ticket.find(params[:id])'),
+    'writable_ownership': reference.replace(':title, :status)', ':title, :status, :team_id)'),
+    'unscoped_list': reference.replace('current_team.tickets.order(:id)', 'Ticket.order(:id)'),
+    'unscoped_show': reference.replace('render json: current_team.tickets.find(params[:id])', 'render json: Ticket.find(params[:id])'),
+    'caller_selects_team': reference.replace('current_team.tickets.order(:id)', 'Ticket.where(team_id: params[:team_id] || current_team.id).order(:id)'),
+}
+summary = {}
+with tempfile.TemporaryDirectory(prefix='team-ticket-validation-') as staging:
+    staging = Path(staging)
+    tests = staging / 'tests'
+    tests.mkdir()
+    shutil.copy(TASK / 'verification_test.rb', tests)
+    shutil.copy(TASK / 'tests/verify.sh', tests)
+    for asset in assets.glob('*.rb'):
+        shutil.copy(asset, tests)
+    for name, candidate in variants.items():
+        logdir = OUT / name
+        logdir.mkdir(parents=True, exist_ok=True)
+        for artifact in ('checks.json', 'reward.txt'):
+            (logdir / artifact).unlink(missing_ok=True)
+        patch = staging / 'candidate.patch'
+        patch.write_text(''.join(difflib.unified_diff(original.splitlines(True), candidate.splitlines(True),
+                                                   fromfile='a/' + filename, tofile='b/' + filename)))
+        command = 'bash /tests/verify.sh'
+        if candidate != original:
+            command = 'git apply /candidate.patch && ' + command
+        result = subprocess.run([
+            'docker', 'run', '--rm', '--network', 'none',
+            '-v', f'{tests}:/tests:ro', '-v', f'{patch}:/candidate.patch:ro',
+            '-v', f'{logdir}:/logs', '-e', 'WORKDIR=/app', '-e', 'TESTS=/tests',
+            '-e', 'LOGS=/logs', '-e', 'RUBYOPT=-I/tests', IMAGE, 'bash', '-c', command
+        ], capture_output=True, text=True)
+        (logdir / 'container.log').write_text(result.stdout + result.stderr)
+        checks_file = logdir / 'checks.json'
+        checks = json.loads(checks_file.read_text())['checks'] if checks_file.exists() else {}
+        summary[name] = {'exit_code': result.returncode, 'checks': checks}
+        expected = 0 if name == 'reference' else 1
+        print(f'{name}: exit {result.returncode}, expected {expected}', flush=True)
+        if result.returncode != expected or not checks:
+            raise SystemExit(f'Unexpected result; inspect {logdir}')
+        if name == 'reference' and any(value != 'pass' for value in checks.values()):
+            raise SystemExit('Reference did not report all checks passing')
+OUT.mkdir(parents=True, exist_ok=True)
+(OUT / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+print(f'All eight validation cases behaved as expected. Evidence: {OUT}')

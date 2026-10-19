@@ -50,6 +50,19 @@ See the [validation record](docs/development-eval-validation-2026-10-19.md).
 Development evaluation material stays out of training data and its scores
 are reported separately from the official benchmark.
 
+A second independent task covers [team ticket data boundaries](evals/development-team-tickets/tasks/team-ticket-boundary/instruction.md),
+using a separate starter app. Its [validation](docs/team-ticket-validation-2026-10-20.md)
+passed oracle/nop and six incomplete-fix checks. It tests scoped lists,
+cross-team reads/edits, and immutable ownership through the existing API.
+No model has attempted it.
+The grader and reference fixtures are included for repository review. They
+remain outside the model's starter workspace and inference requests.
+
+```sh
+bash bin/validate-development evals/development-team-tickets team-ticket-boundary
+python3 bin/validate-team-ticket-mutations
+```
+
 ## First milestone: validate the evaluation environment
 
 **Completed on one task:** reference solution scored 1.0; unchanged app

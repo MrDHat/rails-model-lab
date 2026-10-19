@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+bench="${1:-evals/development}"
+task="${2:-expense-claim-submission}"
+for artifact in verification_test.rb solution.patch; do
+  if [ ! -s "$bench/tasks/$task/$artifact" ]; then
+    echo "Missing local evaluation file: $bench/tasks/$task/$artifact" >&2
+    echo "Private grader/reference files must be present before no-model validation." >&2
+    exit 2
+  fi
+done
 mkdir -p runs
 run_root="$(mktemp -d "$PWD/runs/development-validation-XXXXXX")"
 for agent in oracle nop; do
-  bundle exec lemans run --bench evals/development --backend docker \
-    --task expense-claim-submission --agent "$agent" --attempts 1 --concurrency 1 \
+  bundle exec lemans run --bench "$bench" --backend docker \
+    --task "$task" --agent "$agent" --attempts 1 --concurrency 1 \
     --runs-dir "$run_root/$agent"
 done
 python3 - "$run_root" <<'PYTHON'
