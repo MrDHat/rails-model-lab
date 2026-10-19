@@ -23,6 +23,11 @@ The [runtime diagnostics](docs/colab-runtime-diagnostics-2026-10-19.md) record
 explicit error propagation and a successful separate chunked-prefill probe on
 the previously failing request.
 
+The [fresh chunked-prefill attempt](docs/qwen-chunked-pilot-2026-10-19.md)
+passed that memory failure point and the visible baseline, then exceeded its
+fixed context guard after two truncated outputs. It is also **unscored**, with
+no submission. Runtime errors now propagate to a preserved invalid trial.
+
 ## Development evaluations
 
 Our first independent task is runnable:

@@ -31,3 +31,49 @@ The runner validates `COLAB_PREFILL_CHUNK_SIZE` and puts it in every request;
 the current Python helper passes it directly to `generate` and records it in
 each successful response. Zero disables chunking explicitly. This prevents
 prior notebook state from silently choosing the generation setting.
+
+## Outcome
+
+The fresh attempt is **unscored**. Request 18 exceeded the fixed 8,192-token
+input guard after two consecutive responses reached the output cap without
+completing a tool call. The error traveled through the normal relay and the
+harness exited 1 with `agent_error`, `scored: false`, and
+`Colab AssertionError: Pilot input budget exceeded`. No submission or hidden
+grading occurred. This supplies an end-to-end example of runtime error
+propagation; the separate local error-injection check remains unrun.
+
+| Measure | Observed |
+| --- | --- |
+| Repository at launch | `7a6a2f8492f0b7f399a634f1b732a94272674111`, clean |
+| Trial | `expense-claim-submission__5nMrFCs` |
+| Successful model responses / total requests | 17 / 18 |
+| Accepted input / output tokens | 64,716 / 4,450 |
+| Accepted generation time | 420.91 seconds |
+| Operator-inclusive harness duration | 788.8 seconds |
+| Maximum reported allocated GPU memory | 11.29 GiB |
+| Visible baseline | 3 tests, 11 assertions, zero failures/errors |
+| Hidden reward | None; grader not run |
+| API price accounting | $0 local-provider rate; excludes Colab GPU cost |
+
+Every successful response records eager attention, chunk size 1024, EOS 248046,
+and the pinned model revision. Unlike the earlier attempt, request 15 at 6,188
+input tokens completed and executed `bundle exec rails test`. Responses 16 and
+17 each used all 1,024 output tokens writing an oversized edge-case script.
+Neither had a complete native tool call, so neither script was executed.
+Miniswen requested a concise response after each truncation. Request 18 then
+hit the guard before generation; it has no generation usage measurement.
+
+The agent added conditional model validations and reran its five-scenario
+reproduction script before the baseline. The harness preserved the patch,
+trajectory, agent result, and trial result despite the error. Passing visible
+checks does not establish a hidden score or successful task completion.
+
+Raw evidence is ignored under `runs/qwen-development-ZxW2Rq/`: 18 exact request
+and response pairs, runtime settings, source snapshots, evaluation hashes,
+`trials/Qwen3.5-4B/expense-claim-submission__5nMrFCs/`, and final Colab DOM and
+screenshot. No hidden material or prior model solution was sent to Colab.
+
+Chunking addressed the observed eager-attention memory failure for this
+trajectory, but does not establish that every context up to the guard fits.
+The next inference experiment needs a separately fixed output/context budget
+or agent-history policy. Increasing the turn allowance alone is insufficient.
