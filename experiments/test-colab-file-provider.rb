@@ -2,6 +2,7 @@
 require 'tmpdir'
 ENV['COLAB_RELAY_DIR'] = Dir.mktmpdir('colab-relay-test-')
 ENV['COLAB_MODEL_REVISION'] = 'test-revision'
+ENV['COLAB_PREFILL_CHUNK_SIZE'] = '1024'
 require_relative 'colab-file-provider'
 provider = RubyLLM::Providers::Ollama.new(RubyLLM.config)
 model = RubyLLM::Model::Info.default('Qwen/Qwen3.5-4B', 'ollama')
@@ -24,6 +25,7 @@ begin
     raise 'request missing' unless path
     request = JSON.parse(File.read(path))
     raise 'bad cap' unless request['max_new_tokens'] == 1024
+    raise 'prefill setting lost' unless request['prefill_chunk_size'] == 1024
     response = {relay_id: request.fetch('id'), revision: 'test-revision', model: model.id}
     if scenario == :success
       response.merge!(choices: [{finish_reason: 'tool_calls', message: {

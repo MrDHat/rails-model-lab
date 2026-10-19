@@ -16,7 +16,7 @@ runtime errors. All input history is preserved. No prior solution, model
 trajectory, hidden grading output, or reference patch is supplied to the new
 agent. Diagnostic generations are never used as agent responses.
 
-Launch: `COLAB_STEP_LIMIT=32 bash bin/run-colab-development`. Copy the prefill
+Launch: `COLAB_STEP_LIMIT=32 COLAB_PREFILL_CHUNK_SIZE=1024 bash bin/run-colab-development`. Copy the prefill
 setup script into the ignored run evidence and retain exact requests/responses.
 Verify every successful response records eager attention, chunk size 1024,
 the pinned revision, and EOS 248046. If a runtime error occurs, relay it exactly
@@ -26,3 +26,8 @@ Measure agent submission, visible test execution, hidden reward, token use,
 generation time, and operator-inclusive elapsed time separately. The earlier
 memory probe covers one 6,188-token context, not the full input allowance. A
 fresh failure must remain visible rather than trigger a mid-attempt limit change.
+
+The runner validates `COLAB_PREFILL_CHUNK_SIZE` and puts it in every request;
+the current Python helper passes it directly to `generate` and records it in
+each successful response. Zero disables chunking explicitly. This prevents
+prior notebook state from silently choosing the generation setting.

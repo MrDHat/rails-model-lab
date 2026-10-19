@@ -23,6 +23,9 @@ The default budget remains twelve turns. Set `COLAB_STEP_LIMIT` to a positive
 integer before launching a fresh attempt to override it; the generated bench
 configuration preserves the chosen value. The follow-up protocol uses
 `COLAB_STEP_LIMIT=32 bash bin/run-colab-development`.
+Set `COLAB_PREFILL_CHUNK_SIZE=1024` to request chunked prefill explicitly.
+The default zero sends `null`, disabling chunking for that request regardless
+of prior notebook generation settings. Load the current Python helper first.
 
 This is an interactive transport: the operator relays bytes, without editing
 the model's answer or choosing its commands. The model receives miniswen's
