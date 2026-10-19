@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Summarize local evidence without model calls or grading an invalid trial."""
+import argparse
+import json
+from pathlib import Path
+
+
+def summarize(root):
+    root = Path(root)
+    requests = {}
+    for path in sorted((root / "relay").glob("*.request.json")):
+        request = json.loads(path.read_text())
+        if request["id"] != path.name.removesuffix(".request.json"):
+            raise ValueError(f"Request identity mismatch: {path.name}")
+        requests[request["id"]] = request
+    successful, errors, pending = [], [], []
+    for path in (root / "relay").glob("*.response.json"):
+        if path.name.removesuffix(".response.json") not in requests:
+            raise ValueError(f"Response without request: {path.name}")
+    for identity, request in requests.items():
+        path = root / "relay" / f"{identity}.response.json"
+        if not path.exists():
+            pending.append(identity)
+            continue
+        response = json.loads(path.read_text())
+        if response.get("relay_id") != identity or response.get("model") != request["model"]:
+            raise ValueError(f"Response identity mismatch: {path.name}")
+        if "error" in response:
+            errors.append({"request_id": identity, "error": response["error"]})
+        else:
+            if response.get("prefill_chunk_size") != request.get("prefill_chunk_size"):
+                raise ValueError(f"Prefill setting mismatch: {path.name}")
+            successful.append(response)
+    trials = []
+    for path in sorted((root / "trials").rglob("result.json")):
+        result = json.loads(path.read_text())
+        outcome = result["outcome"]
+        # Only the harness decides whether a reward exists. Visible tests and
+        # successful generations never imply a score or a submission.
+        trial = {"trial": result["trial"], "outcome": outcome,
+                 "duration_seconds": result.get("duration")}
+        if outcome["scored"]:
+            trial["reward"] = result.get("reward")
+        agent_path = path.with_name("agent.result.json")
+        if agent_path.exists():
+            agent = json.loads(agent_path.read_text())
+            trial["agent_status"] = agent["status"]
+            trial["submission"] = agent.get("submission")
+            trial["agent_tokens"] = {key: agent.get(key) for key in
+                                     ("input_tokens", "output_tokens")}
+        trials.append(trial)
+    settings = {json.dumps({key: item.get(key) for key in
+                           ("model", "revision", "attention", "prefill_chunk_size", "eos_token_id")},
+                          sort_keys=True) for item in successful}
+    return {
+        "run": str(root), "requests": len(requests),
+        "successful_responses": len(successful), "pending_requests": pending,
+        "runtime_errors": errors,
+        "accepted_input_tokens": sum(item["usage"]["prompt_tokens"] for item in successful),
+        "accepted_output_tokens": sum(item["usage"]["completion_tokens"] for item in successful),
+        "accepted_generation_seconds": round(sum(item["seconds"] for item in successful), 2),
+        "peak_allocated_gpu_GiB": max((item["peak_gpu_GiB"] for item in successful), default=None),
+        "truncated_responses": [item["relay_id"] for item in successful
+                                if item["choices"][0]["finish_reason"] == "length"],
+        "observed_settings": [json.loads(item) for item in sorted(settings)],
+        "trials": trials,
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("run", type=Path)
+    args = parser.parse_args()
+    if not (args.run / "relay").is_dir():
+        parser.error("run must contain a relay directory")
+    try:
+        print(json.dumps(summarize(args.run), indent=2))
+    except (ValueError, KeyError, TypeError) as error:
+        parser.exit(1, f"Invalid run evidence: {error}\n")
