@@ -27,7 +27,8 @@ begin
     request = JSON.parse(File.read(path))
     raise 'bad cap' unless request['max_new_tokens'] == 2048
     raise 'input budget lost' unless request['input_token_limit'] == 12288
-    raise 'protocol missing' unless request['relay_protocol'] == 2
+    raise 'protocol missing' unless request['relay_protocol'] == 3
+    raise 'deadline missing' unless Time.iso8601(request.fetch('expires_at')) - Time.iso8601(request.fetch('created_at')) == 600
     raise 'prefill setting lost' unless request['prefill_chunk_size'] == 1024
     response = {relay_id: request.fetch('id'), revision: 'test-revision', model: model.id}
     if scenario == :success
@@ -59,6 +60,28 @@ begin
       raise 'failed response consumed' if File.exist?(path.sub('.request.json', '.consumed.json'))
     end
   end
+  # Simulate a deadline passing while the consumer is asleep, then place a
+  # response before it wakes. A file's existence must not override timeout.
+  ColabFileProvider.send(:remove_const, :RESPONSE_TIMEOUT)
+  ColabFileProvider.const_set(:RESPONSE_TIMEOUT, 0.05)
+  worker = Thread.new do
+    provider.complete([], tools: {}, temperature: nil, model: model)
+  end
+  worker.report_on_exception = false
+  sleep 0.1
+  path = Dir[File.join(ENV['COLAB_RELAY_DIR'], '*.request.json')].find do |candidate|
+    !File.exist?(candidate.sub('.request.json', '.response.json'))
+  end
+  raise 'timeout request missing' unless path
+  File.write(path.sub('.request.json', '.response.json'), '{}')
+  begin
+    worker.value
+    raise 'late response accepted'
+  rescue Miniswen::InfrastructureError => error
+    raise 'wrong timeout error' unless error.message.include?('timed out')
+  end
+  raise 'timeout not recorded' unless File.exist?(path.sub('.request.json', '.expired.json'))
+  raise 'late response consumed' if File.exist?(path.sub('.request.json', '.consumed.json'))
   puts 'Transport fixtures passed: command/tokens, runtime error, revision mismatch'
 ensure
   FileUtils.remove_entry(ENV.fetch('COLAB_RELAY_DIR'))

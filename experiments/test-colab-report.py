@@ -82,7 +82,7 @@ class ReportTests(unittest.TestCase):
     def test_late_response_is_generated_but_not_consumed(self):
         for identity in ("parsed", "late"):
             self.write(f"relay/{identity}.request.json", {
-                "id": identity, "model": "model", "prefill_chunk_size": 1024, "relay_protocol": 2})
+                "id": identity, "model": "model", "prefill_chunk_size": 1024, "relay_protocol": 3 if identity == "parsed" else 2})
             self.response(identity)
         self.write("relay/parsed.consumed.json", {"relay_id": "parsed", "revision": "pinned"})
         result = summarize(self.root)
@@ -96,6 +96,21 @@ class ReportTests(unittest.TestCase):
         self.response("legacy")
         self.assertFalse(summarize(self.root)["consumption_receipts"]["available_for_all_requests"])
         self.write("relay/legacy.consumed.json", {"relay_id": "wrong", "revision": "pinned"})
+        with self.assertRaises(ValueError):
+            summarize(self.root)
+
+    def test_quarantined_generation_counts_usage_without_pending_or_consumption(self):
+        self.request("expired")
+        self.response("expired")
+        (self.root / "relay/expired.response.json").rename(self.root / "relay/expired.late.json")
+        self.write("relay/expired.expired.json", {"relay_id": "expired"})
+        result = summarize(self.root)
+        self.assertEqual(result["generated_input_tokens"], 20)
+        self.assertEqual(result["pending_requests"], [])
+        self.assertEqual(result["expired_requests"], ["expired"])
+        self.assertEqual(result["quarantined_late_responses"], ["expired"])
+        self.assertEqual(result["consumption_receipts"]["parsed_response_ids"], [])
+        self.write("relay/expired.consumed.json", {"relay_id": "expired", "revision": "pinned"})
         with self.assertRaises(ValueError):
             summarize(self.root)
 

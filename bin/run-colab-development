@@ -42,7 +42,7 @@ bundle exec ruby -ryaml -e '
 git rev-parse HEAD > "$run_root/repository-revision.txt"
 git diff > "$run_root/working-tree.patch"
 cp bin/run-colab-development experiments/colab-file-provider.rb experiments/colab-agent-inference.py \
-  Gemfile.lock "$run_root/"
+  experiments/colab-browser-relay.mjs Gemfile.lock "$run_root/"
 echo "Evidence and interactive request/response files: $run_root"
 exec bundle exec lemans run --require experiments/colab-file-provider.rb \
   --bench "$run_root/bench" --backend docker --task expense-claim-submission \

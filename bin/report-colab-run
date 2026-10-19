@@ -13,14 +13,24 @@ def summarize(root):
         if request["id"] != path.name.removesuffix(".request.json"):
             raise ValueError(f"Request identity mismatch: {path.name}")
         requests[request["id"]] = request
-    successful, errors, pending, consumed = [], [], [], []
-    for path in (root / "relay").glob("*.response.json"):
-        if path.name.removesuffix(".response.json") not in requests:
-            raise ValueError(f"Response without request: {path.name}")
+    successful, errors, pending, consumed, late, expired = [], [], [], [], [], []
+    for suffix in ("response", "late", "expired"):
+        for path in (root / "relay").glob(f"*.{suffix}.json"):
+            if path.name.removesuffix(f".{suffix}.json") not in requests:
+                raise ValueError(f"Evidence without request: {path.name}")
     for identity, request in requests.items():
         path = root / "relay" / f"{identity}.response.json"
+        late_path = path.with_name(f"{identity}.late.json")
+        if path.with_name(f"{identity}.expired.json").exists():
+            expired.append(identity)
+        if late_path.exists():
+            if path.exists() or path.with_name(f"{identity}.consumed.json").exists():
+                raise ValueError(f"Quarantined response also delivered or consumed: {identity}")
+            path = late_path
+            late.append(identity)
         if not path.exists():
-            pending.append(identity)
+            if identity not in expired:
+                pending.append(identity)
             continue
         response = json.loads(path.read_text())
         if response.get("relay_id") != identity or response.get("model") != request["model"]:
@@ -62,13 +72,14 @@ def summarize(root):
     return {
         "run": str(root), "requests": len(requests),
         "generated_responses": len(successful), "pending_requests": pending,
+        "quarantined_late_responses": late, "expired_requests": expired,
         "runtime_errors": errors,
         "generated_input_tokens": sum(item["usage"]["prompt_tokens"] for item in successful),
         "generated_output_tokens": sum(item["usage"]["completion_tokens"] for item in successful),
         "generated_seconds": round(sum(item["seconds"] for item in successful), 2),
         "consumption_receipts": {
             "available_for_all_requests": bool(requests) and all(
-                request.get("relay_protocol") == 2 for request in requests.values()),
+                request.get("relay_protocol") in (2, 3) for request in requests.values()),
             "parsed_response_ids": [item["relay_id"] for item in consumed],
             "parsed_input_tokens": sum(item["usage"]["prompt_tokens"] for item in consumed),
             "parsed_output_tokens": sum(item["usage"]["completion_tokens"] for item in consumed),

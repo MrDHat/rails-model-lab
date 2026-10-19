@@ -7,12 +7,18 @@ require "fileutils"
 require "time"
 
 module ColabFileProvider
+  RESPONSE_TIMEOUT = 600
+
   def complete(messages, tools:, temperature:, model:, params: {}, **)
     directory = ENV.fetch("COLAB_RELAY_DIR")
     FileUtils.mkdir_p(directory)
     id = SecureRandom.uuid
+    started_at = Time.now.utc
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + RESPONSE_TIMEOUT
     request = {
-      id: id, model: model.id, relay_protocol: 2,
+      id: id, model: model.id, relay_protocol: 3,
+      created_at: started_at.iso8601(6),
+      expires_at: (started_at + RESPONSE_TIMEOUT).iso8601(6),
       messages: format_messages(messages),
       tools: tools.map { |_, tool| tool_for(tool) },
       max_new_tokens: params.fetch(:max_tokens, 1024),
@@ -25,11 +31,16 @@ module ColabFileProvider
     File.rename("#{path}.tmp", path)
     warn "Colab request ready: #{path}"
     response_path = File.join(directory, "#{id}.response.json")
-    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 600
-    until File.exist?(response_path)
+    loop do
       if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+        expired = File.join(directory, "#{id}.expired.json")
+        File.write("#{expired}.tmp", JSON.generate(
+          relay_id: id, expired_at: Time.now.utc.iso8601(6)
+        ))
+        File.rename("#{expired}.tmp", expired)
         raise Miniswen::InfrastructureError, "Colab response timed out for #{id}"
       end
+      break if File.exist?(response_path)
       sleep 0.25
     end
     data = JSON.parse(File.read(response_path))

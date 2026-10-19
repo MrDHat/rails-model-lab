@@ -129,3 +129,30 @@ replay diagnostic before launching a fresh coding attempt.
 
 The parser follows the pinned checkpoint's
 [native chat template](https://huggingface.co/Qwen/Qwen3.5-4B/blob/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/chat_template.jinja).
+
+## Deadline-aware relay preparation
+
+Protocol 3 requests include `created_at` and `expires_at` UTC timestamps. The
+provider still enforces the same 600-second monotonic deadline; timestamps
+help the browser operator avoid starting stale work. A timed-out consumer
+writes an `*.expired.json` marker and refuses a response even if its file
+appeared while the consumer slept. Protocol 2 consumption receipts retain
+their meaning, and the report recognizes both versions.
+
+`colab-browser-relay.mjs` contains a filesystem exchange and an **unvalidated
+browser helper** for use inside CUA. The exchange preserves exact request
+bytes, checks identity/settings, writes responses atomically, records delivery
+events, and saves late generations as `*.late.json` diagnostics. It opens no
+network connection. The browser helper requires live validation on the
+selected notebook before use in a measured attempt; cell selection/output
+locators have not yet been verified after notebook reload. Do not interpret
+passing filesystem fixtures as browser or model success.
+
+```sh
+node --test experiments/test-colab-browser-relay.mjs
+bundle exec ruby experiments/test-colab-file-provider.rb
+```
+
+Keep the notebook's final cell selected when trying the browser helper. A
+fresh trial must use one fixed protocol and preserve browser events alongside
+harness output. Do not resume an expired trial or execute a late command.
