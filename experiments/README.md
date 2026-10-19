@@ -139,14 +139,20 @@ writes an `*.expired.json` marker and refuses a response even if its file
 appeared while the consumer slept. Protocol 2 consumption receipts retain
 their meaning, and the report recognizes both versions.
 
-`colab-browser-relay.mjs` contains a filesystem exchange and an **unvalidated
-browser helper** for use inside CUA. The exchange preserves exact request
+`colab-browser-relay.mjs` contains a filesystem exchange and an experimental
+browser helper for use inside CUA. The exchange preserves exact request
 bytes, checks identity/settings, writes responses atomically, records delivery
 events, and saves late generations as `*.late.json` diagnostics. It opens no
-network connection. The browser helper requires live validation on the
-selected notebook before use in a measured attempt; cell selection/output
-locators have not yet been verified after notebook reload. Do not interpret
+network connection. Validate the browser helper on the selected notebook
+before use in a measured attempt, especially after reconnecting. Do not interpret
 passing filesystem fixtures as browser or model success.
+
+The DOM editor/run controls passed a live non-task check on 2026-10-20:
+request `575b7ce1-08aa-41a2-8663-ceec34a1ba0e` returned `OK` (17 input / 2
+output tokens), was delivered by the helper and parsed by the Ruby provider.
+The earlier probe revealed a regex-locator failure; detection now uses the
+literal request UUID and validates the parsed response identity before writing.
+This short check establishes delivery, not long-context reliability or a task score.
 
 ```sh
 node --test experiments/test-colab-browser-relay.mjs
@@ -156,3 +162,10 @@ bundle exec ruby experiments/test-colab-file-provider.rb
 Keep the notebook's final cell selected when trying the browser helper. A
 fresh trial must use one fixed protocol and preserve browser events alongside
 harness output. Do not resume an expired trial or execute a late command.
+
+`bin/run-colab-development [bench-directory [task-name]]` also supports the
+independent team-ticket suite. Each run copies the evaluation inputs into its
+local bench and records their SHA-256 hashes in `evaluation-inputs.json`.
+Only the Dockerfile's app directory enters the agent environment. These local
+copies include grader/reference material for later grading; never send them to
+Colab or use them as training inputs.

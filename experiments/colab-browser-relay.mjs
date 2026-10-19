@@ -76,30 +76,29 @@ export function createRelay(tab, runRoot, settings) {
       const next = await exchange.next();
       if (!next) return {state: 'idle'};
       const {request, raw} = next;
-      const before = await tab.getAXState({emit: false, disableDiffing: true});
-      const code = before.match(/(\d+) button Code Insert code cell below/);
-      if (!code) throw new Error('Add-code control unavailable');
-      await tab.click(Number(code[1]));
-      const state = await tab.getAXState({emit: false});
-      const editor = [...state.matchAll(/(\d+) editor \(settable\)/g)].at(-1);
-      const run = [...state.matchAll(/(\d+) button Description: Run cell/g)].at(-1);
-      if (!editor || !run) throw new Error('New cell controls unavailable');
-      await tab.paste(Number(editor[1]), `colab_complete(${JSON.stringify(raw)})`);
-      await tab.click(Number(run[1]));
-      await tab.getAXState({emit: false});
+      await tab.playwright.getByRole('button', {
+        name: 'Code Insert code cell below ⌘/Ctrl+M B', exact: true,
+      }).click();
       const snapshot = await tab.playwright.domSnapshot();
       const output = [...snapshot.matchAll(/- region "(Cell \d+ output)"/g)].at(-1);
       if (!output) throw new Error('New cell output region unavailable');
+      const cellNumber = output[1].match(/\d+/)[0];
+      const cell = tab.playwright.getByRole('region', {
+        name: `Cell ${cellNumber}: Code cell:`, exact: true,
+      });
+      await cell.getByRole('textbox', {name: 'Editor content', exact: true})
+        .fill(`colab_complete(${JSON.stringify(raw)})`);
+      await cell.getByRole('button', {name: 'Run cell', exact: true}).click();
       active = {request, region: output[1]};
       await exchange.event('cell_started', {id: request.id, region: active.region});
       return {state: 'started', id: request.id, region: active.region};
     }
     const region = tab.playwright.getByRole('region', {name: active.region, exact: true});
     try {
-      await region.getByText(new RegExp(`"relay_id":\\s*"${active.request.id}"`)).first()
+      await region.getByText(active.request.id, {exact: false}).first()
         .waitFor({state: 'visible', timeoutMs: 40000});
     } catch (error) {
-      if (!/timeout/i.test(String(error))) throw error;
+      if (!/timeout|timed out|deadline exceeded/i.test(String(error))) throw error;
       return {state: 'generating', id: active.request.id};
     }
     const text = await region.innerText();

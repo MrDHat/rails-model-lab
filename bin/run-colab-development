@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+bench="${1:-evals/development}"
+task="${2:-expense-claim-submission}"
+if [ ! -f "$bench/bench.yml" ] || [ ! -d "$bench/environment" ] || [ ! -d "$bench/tasks/$task" ]; then
+  echo "Usage: $0 [bench-directory [task-name]]; bench and task must exist" >&2
+  exit 2
+fi
+bench="$(cd "$bench" && pwd)"
 export COLAB_STEP_LIMIT="${COLAB_STEP_LIMIT:-12}"
 export COLAB_PREFILL_CHUNK_SIZE="${COLAB_PREFILL_CHUNK_SIZE:-0}"
 export COLAB_INPUT_TOKEN_LIMIT="${COLAB_INPUT_TOKEN_LIMIT:-8192}"
@@ -28,22 +35,36 @@ run_root="$(mktemp -d "$PWD/runs/qwen-development-XXXXXX")"
 export COLAB_RELAY_DIR="$run_root/relay"
 export COLAB_MODEL_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 mkdir -p "$run_root/bench" "$COLAB_RELAY_DIR"
-ln -s "$PWD/evals/development/environment" "$run_root/bench/environment"
-ln -s "$PWD/evals/development/tasks" "$run_root/bench/tasks"
+# Freeze the local evaluation inputs before a timed run. The Dockerfile copies
+# only environment/app; graders and reference patches stay outside the agent.
+cp -R "$bench/environment" "$bench/tasks" "$run_root/bench/"
 bundle exec ruby -ryaml -e '
-  config = YAML.load_file("evals/development/bench.yml")
+  config = YAML.load_file(ARGV.fetch(1))
   config["agent"] = {
     "name" => "miniswen", "model" => "ollama/Qwen/Qwen3.5-4B",
     "timeout" => "30m", "step_limit" => Integer(ENV.fetch("COLAB_STEP_LIMIT")), "exec_timeout" => 60,
     "max_output_tokens" => Integer(ENV.fetch("COLAB_OUTPUT_TOKEN_LIMIT"))
   }
   File.write(ARGV.fetch(0), YAML.dump(config))
-' "$run_root/bench/bench.yml"
+' "$run_root/bench/bench.yml" "$bench/bench.yml"
+python3 - "$run_root" "$bench" "$task" <<'PYTHON'
+import hashlib
+import json
+from pathlib import Path
+import sys
+root, source, task = sys.argv[1:]
+bench = Path(root) / 'bench'
+manifest = {str(path.relative_to(bench)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted(bench.rglob('*')) if path.is_file()}
+(Path(root) / 'evaluation-inputs.json').write_text(json.dumps({
+    'source_bench': source, 'task': task, 'sha256': manifest,
+}, indent=2) + '\n')
+PYTHON
 git rev-parse HEAD > "$run_root/repository-revision.txt"
 git diff > "$run_root/working-tree.patch"
 cp bin/run-colab-development experiments/colab-file-provider.rb experiments/colab-agent-inference.py \
   experiments/colab-browser-relay.mjs Gemfile.lock "$run_root/"
 echo "Evidence and interactive request/response files: $run_root"
 exec bundle exec lemans run --require experiments/colab-file-provider.rb \
-  --bench "$run_root/bench" --backend docker --task expense-claim-submission \
+  --bench "$run_root/bench" --backend docker --task "$task" \
   --attempts 1 --concurrency 1 --runs-dir "$run_root/trials"

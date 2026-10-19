@@ -78,3 +78,32 @@ and including the new hidden grader, reference and mutation fixtures in the
 GitHub PR. The temporary ignore rules were removed before publication.
 That approval does not put hidden material in model workspaces or inference
 requests; those isolation boundaries remain in place.
+
+## Live relay recovery checkpoint
+
+Published the approved team-ticket files in PR #10, commit `0d3f084`.
+The approved extension sign-in briefly succeeded but returned to expired.
+Existing claimed tabs remained unattached; a fresh automation tab opened the
+scratchpad through Colab's recent-notebook link and successfully executed a
+runtime check on the T4. No credentials were entered by the agent.
+
+The exact pinned model and unchanged inference helper were loaded. Rich model
+loading output hit Colab's expired-login/third-party-cookie error. Automatic
+approval review rejected a reload during execution; reload approval was
+requested. Dismissing the error allowed work to continue without reloading:
+subsequent plain-text helper and generation output was readable.
+
+Live probe evidence is in `runs/colab-live-relay-check`. The first request
+returned OK, but exposed a regex locator that missed visible JSON; its exact
+response was preserved and delivered using the filesystem exchange, with the
+failure explicitly logged. After switching detection to literal request UUID,
+a second fresh request (`575b7ce1-08aa-41a2-8663-ceec34a1ba0e`) passed the
+browser helper end to end: 17 input / 2 output tokens, 0.25 seconds generation,
+response delivered and parsed by the Ruby provider, which exited successfully.
+This is a non-task transport check, not a model evaluation score.
+
+The runner now selects either suite and freezes/hash-records local inputs
+before evaluation. Offline wiring checks for both tasks validated selected task,
+all hashes, non-symlink snapshots, and absence of grader/reference files inside
+the starter app. They did not start an agent or Docker and are not scored runs:
+`runs/qwen-development-Az7Kdi` and `runs/qwen-development-pX1kA7`.
