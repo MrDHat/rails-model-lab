@@ -25,7 +25,7 @@ def parse_calls(raw):
     return calls
 
 
-def colab_complete(request_json):
+def _colab_complete(request_json):
     import torch
 
     assert REVISION == EXPECTED_REVISION, "Unexpected model revision"
@@ -71,7 +71,22 @@ def colab_complete(request_json):
         "usage": {"prompt_tokens": input_tokens, "completion_tokens": len(generated)},
         "raw_generation": raw,
         "eos_token_id": end_token,
+        "attention": model.config.text_config._attn_implementation,
+        "prefill_chunk_size": model.generation_config.prefill_chunk_size,
         "seconds": round(time.perf_counter() - started, 2),
         "peak_gpu_GiB": round(torch.cuda.max_memory_allocated() / 2**30, 2),
     }
+    return response
+
+
+def colab_complete(request_json):
+    request = json.loads(request_json)
+    try:
+        response = _colab_complete(request_json)
+    except Exception as error:
+        # Transport failures are not model answers and must never be scored.
+        response = {
+            "relay_id": request["id"], "model": MODEL_ID, "revision": REVISION,
+            "error": {"type": type(error).__name__, "message": str(error)},
+        }
     print(json.dumps(response))

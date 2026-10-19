@@ -33,6 +33,10 @@ module ColabFileProvider
     unless data.fetch("relay_id") == id && data.fetch("revision") == ENV.fetch("COLAB_MODEL_REVISION")
       raise Miniswen::InfrastructureError, "Colab response identity or revision mismatch"
     end
+    if data.key?("error")
+      error = data.fetch("error")
+      raise Miniswen::InfrastructureError, "Colab #{error.fetch('type')}: #{error.fetch('message')}"
+    end
     parse_completion_response(Struct.new(:body).new(data))
   end
 end
