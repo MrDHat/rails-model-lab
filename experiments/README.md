@@ -64,6 +64,21 @@ tracked working-tree diff, transport source snapshots, Gemfile.lock, exact
 requests/responses, and lemans outputs. Evaluation files remain local and out
 of training. Do not use the attempt logs as training examples.
 
+Generate a local JSON checkpoint summary without starting Docker or Colab:
+
+```sh
+python3 bin/report-colab-run runs/qwen-development-XXXXXX
+PYTHONDONTWRITEBYTECODE=1 python3 experiments/test-colab-report.py
+```
+
+The report keeps accepted generation usage separate from trial outcome and
+submission. It lists pending requests, relayed runtime errors, truncations,
+observed runtime settings, and allocated GPU peaks. Only a scored harness
+result supplies a reward. Missing trial results stay absent, and missing
+historical runtime settings appear as `null`; neither proves completion.
+External diagnostics saved outside the relay are excluded. Request/response
+identity or prefill-setting mismatches fail the report instead of being counted.
+
 ## Runtime diagnostics and failures
 
 The inference helper prints an identity-tagged `error` response when model
