@@ -28,6 +28,12 @@ passed that memory failure point and the visible baseline, then exceeded its
 fixed context guard after two truncated outputs. It is also **unscored**, with
 no submission. Runtime errors now propagate to a preserved invalid trial.
 
+The [larger-budget validation](docs/qwen-budget-pilot-2026-10-19.md) passed a
+12,288-input / 2,048-output allocation probe and completed a previously
+truncated response. Its fresh attempt passed visible checks without truncation,
+then ended **unscored** when a response missed the local relay deadline.
+Explicit task submission and reliable transport remain unresolved.
+
 ## Development evaluations
 
 Our first independent task is runnable:
