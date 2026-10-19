@@ -2,8 +2,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export COLAB_STEP_LIMIT="${COLAB_STEP_LIMIT:-12}"
+export COLAB_PREFILL_CHUNK_SIZE="${COLAB_PREFILL_CHUNK_SIZE:-0}"
 if ! [[ "$COLAB_STEP_LIMIT" =~ ^[1-9][0-9]*$ ]]; then
   echo "COLAB_STEP_LIMIT must be a positive integer" >&2
+  exit 2
+fi
+if ! [[ "$COLAB_PREFILL_CHUNK_SIZE" =~ ^(0|[1-9][0-9]*)$ ]]; then
+  echo "COLAB_PREFILL_CHUNK_SIZE must be zero or a positive integer" >&2
   exit 2
 fi
 mkdir -p runs

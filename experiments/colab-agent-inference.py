@@ -46,6 +46,8 @@ def _colab_complete(request_json):
     input_tokens = inputs["input_ids"].shape[-1]
     assert input_tokens <= 8192, "Pilot input budget exceeded"
     cap = min(request["max_new_tokens"], 1024)
+    prefill_chunk_size = request.get("prefill_chunk_size")
+    assert prefill_chunk_size is None or (type(prefill_chunk_size) is int and prefill_chunk_size > 0)
     end_token = processor.tokenizer.convert_tokens_to_ids("<|im_end|>")
     assert isinstance(end_token, int) and end_token == processor.tokenizer.eos_token_id
     torch.cuda.reset_peak_memory_stats()
@@ -54,6 +56,7 @@ def _colab_complete(request_json):
     with torch.inference_mode():
         output = model.generate(
             **inputs, max_new_tokens=cap, do_sample=False, eos_token_id=end_token,
+            prefill_chunk_size=prefill_chunk_size,
         )
     torch.cuda.synchronize()
     generated = output[0][input_tokens:]
@@ -72,7 +75,7 @@ def _colab_complete(request_json):
         "raw_generation": raw,
         "eos_token_id": end_token,
         "attention": model.config.text_config._attn_implementation,
-        "prefill_chunk_size": model.generation_config.prefill_chunk_size,
+        "prefill_chunk_size": prefill_chunk_size,
         "seconds": round(time.perf_counter() - started, 2),
         "peak_gpu_GiB": round(torch.cuda.max_memory_allocated() / 2**30, 2),
     }

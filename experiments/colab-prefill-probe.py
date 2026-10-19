@@ -13,4 +13,6 @@ model.generation_config.prefill_chunk_size = 1024
 
 def probe_request(request_json):
     # Single unpadded request; preserve the full history and output-token cap.
-    colab_complete(request_json)
+    request = json.loads(request_json)
+    request["prefill_chunk_size"] = 1024
+    colab_complete(json.dumps(request))
