@@ -38,7 +38,10 @@ torch.cuda.reset_peak_memory_stats()
 torch.cuda.synchronize()
 started = time.perf_counter()
 with torch.inference_mode():
-    outputs = model.generate(**inputs, max_new_tokens=192, do_sample=False)
+    outputs = model.generate(
+        **inputs, max_new_tokens=192, do_sample=False,
+        eos_token_id=processor.tokenizer.eos_token_id,
+    )
 torch.cuda.synchronize()
 elapsed = time.perf_counter() - started
 new_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
@@ -55,6 +58,7 @@ record = {
     "peak_gpu_GiB": round(torch.cuda.max_memory_allocated() / 2**30, 2),
     "max_new_tokens": 192, "do_sample": False, "enable_thinking": False,
     "attn_implementation": "eager",
+    "eos_token_id": processor.tokenizer.eos_token_id,
     "reached_token_limit": len(new_tokens) == 192,
 }
 Path("qwen-smoke-result.json").write_text(json.dumps(record, indent=2) + "\n")

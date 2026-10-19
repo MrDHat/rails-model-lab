@@ -1,0 +1,60 @@
+# Colab pilot
+
+The first Qwen development attempt uses the unchanged smoke-test checkpoint in
+the existing Colab GPU runtime. Local Docker holds the starter Rails app;
+lemans 1.5.2 and miniswen run locally. Only model requests and responses cross
+the browser connection. No public inference endpoint is opened.
+
+## Run
+
+1. Load the model as in `qwen-colab-smoke.py`, using revision
+   `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`.
+2. Execute `colab-agent-inference.py` in that same runtime.
+3. Locally run `bash bin/run-colab-development` with Docker running.
+4. For each new `*.request.json` in the printed relay directory, execute
+   `colab_complete(request_json_string)` in Colab. Transfer the request exactly,
+   using proper string escaping. Save the resulting JSON unchanged to the
+   corresponding `*.response.json` locally. Write to a temporary file first,
+   then rename it atomically so Ruby never reads a partial response.
+5. Repeat until miniswen submits, reaches a limit, or fails. Inspect the final
+   result outcome, score, grader logs, patch, and trajectory.
+
+This is an interactive transport: the operator relays bytes, without editing
+the model's answer or choosing its commands. The model receives miniswen's
+standard system and task prompts plus its bash tool schema. The helper uses
+the checkpoint's own chat template and parses its native XML tool calls into
+the OpenAI-compatible response shape expected by RubyLLM. It never translates
+prose into commands or repairs malformed tool calls. The raw generation is
+saved alongside the parsed response. Unsupported parameter markup is rejected.
+
+The `ollama/` model prefix selects RubyLLM's local, OpenAI-compatible provider
+and zero API-token pricing; Ollama itself is not running. An opt-in Ruby
+extension substitutes the file transport and skips remote pricing-registry
+refresh. Miniswen's agent logic and the hidden grader are unchanged. Treat
+this transport, the limits below, and the runtime as experimental settings
+when comparing results. Zero API-token pricing does not mean GPU time is free.
+
+## Limits and evidence
+
+- One expense-claim attempt; concurrency one.
+- Twelve model turns; 30-minute agent deadline; 60-second command timeout.
+- Up to 1,024 output tokens per turn, greedy generation, thinking disabled.
+- Explicit tokenizer end-of-turn token `248046`. The observed model generation
+  config used `248044`; leaving that default allowed generation to continue
+  into fabricated conversation turns. A diagnostic generation was preserved
+  and discarded before any command execution, then the same initial request
+  was retried with this stopping correction.
+- At most 8,192 input tokens per turn. The helper refuses longer requests;
+  exceeding this is a pilot infrastructure limit, not a model score.
+- Ten-minute relay-response timeout per turn. Operator latency counts against
+  the agent deadline, so elapsed time is not pure model execution time.
+- No training, answer hints, hidden-test feedback, or reference patch enter
+  the model's request stream. Visible starter tests and their output may enter.
+
+The run directory includes the generated configuration, repository revision,
+tracked working-tree diff, transport source snapshots, Gemfile.lock, exact
+requests/responses, and lemans outputs. Evaluation files remain local and out
+of training. Do not use the attempt logs as training examples.
+
+The parser follows the pinned checkpoint's
+[native chat template](https://huggingface.co/Qwen/Qwen3.5-4B/blob/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/chat_template.jinja).

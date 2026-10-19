@@ -8,8 +8,13 @@ GPU host, training method, and budget remain provisional.
 
 Qwen3.5-4B now passes a short Colab T4 inference smoke test. See the
 [runtime and result record](docs/qwen-colab-smoke-2026-10-19.md) and
-[reusable script](experiments/qwen-colab-smoke.py). A model coding evaluation
-has not run yet.
+[reusable script](experiments/qwen-colab-smoke.py).
+
+The first unchanged-model development attempt scored **1.0**, passing all 27
+hidden tests, but reached its 12-turn limit before submitting. See the
+[pilot result and limits](docs/qwen-development-pilot-2026-10-19.md) and
+[interactive Colab workflow](experiments/README.md). This is one development
+task, not an official benchmark result.
 
 ## Development evaluations
 
