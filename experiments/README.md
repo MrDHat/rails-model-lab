@@ -19,6 +19,11 @@ the browser connection. No public inference endpoint is opened.
 5. Repeat until miniswen submits, reaches a limit, or fails. Inspect the final
    result outcome, score, grader logs, patch, and trajectory.
 
+The default budget remains twelve turns. Set `COLAB_STEP_LIMIT` to a positive
+integer before launching a fresh attempt to override it; the generated bench
+configuration preserves the chosen value. The follow-up protocol uses
+`COLAB_STEP_LIMIT=32 bash bin/run-colab-development`.
+
 This is an interactive transport: the operator relays bytes, without editing
 the model's answer or choosing its commands. The model receives miniswen's
 standard system and task prompts plus its bash tool schema. The helper uses

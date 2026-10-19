@@ -16,6 +16,10 @@ hidden tests, but reached its 12-turn limit before submitting. See the
 [interactive Colab workflow](experiments/README.md). This is one development
 task, not an official benchmark result.
 
+A fresh [32-turn follow-up](docs/qwen-32-turn-pilot-2026-10-19.md) hit a Colab
+GPU memory error on request 15 and is **unscored**. Longer-context runtime
+validation is required before another scored attempt.
+
 ## Development evaluations
 
 Our first independent task is runnable:
