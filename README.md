@@ -19,6 +19,9 @@ task, not an official benchmark result.
 A fresh [32-turn follow-up](docs/qwen-32-turn-pilot-2026-10-19.md) hit a Colab
 GPU memory error on request 15 and is **unscored**. Longer-context runtime
 validation is required before another scored attempt.
+The [runtime diagnostics](docs/colab-runtime-diagnostics-2026-10-19.md) record
+explicit error propagation and a successful separate chunked-prefill probe on
+the previously failing request.
 
 ## Development evaluations
 

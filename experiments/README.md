@@ -61,5 +61,33 @@ tracked working-tree diff, transport source snapshots, Gemfile.lock, exact
 requests/responses, and lemans outputs. Evaluation files remain local and out
 of training. Do not use the attempt logs as training examples.
 
+## Runtime diagnostics and failures
+
+The inference helper prints an identity-tagged `error` response when model
+execution or a context guard fails. Relay that JSON exactly as a response;
+the Ruby adapter raises `Miniswen::InfrastructureError` before parsing any
+model answer. Do not turn failures into empty completions or zero rewards.
+Local protocol fixtures run without Colab or Docker:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 experiments/test-colab-inference.py
+bundle exec ruby experiments/test-colab-file-provider.rb
+```
+
+The 32-turn eager-attention attempt ran out of GPU memory at 6,188 input tokens.
+`colab-sdpa-probe.py` and `colab-prefill-probe.py` are separate diagnostic
+configurations. Load the current inference helper first, execute one probe
+script in the loaded runtime, then pass the exact failed request string to
+`probe_request`. Preserve its output outside the scored run's relay directory;
+never execute the generated commands or resume the interrupted attempt.
+
+The SDPA probe changes the attention backend and requires the memory-efficient
+kernel explicitly. The prefill probe restores eager attention and sets
+`model.generation_config.prefill_chunk_size = 1024`; it preserves the full
+unpadded, single-request history and output cap. Both change runtime settings.
+After probing, reload the model or explicitly reset attention and
+`prefill_chunk_size` before a future protocol. Do not assume the old defaults
+remain in the live runtime. Record runtime settings alongside each result.
+
 The parser follows the pinned checkpoint's
 [native chat template](https://huggingface.co/Qwen/Qwen3.5-4B/blob/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/chat_template.jinja).
