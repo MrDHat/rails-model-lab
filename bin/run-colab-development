@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+mkdir -p runs
+run_root="$(mktemp -d "$PWD/runs/qwen-development-XXXXXX")"
+export COLAB_RELAY_DIR="$run_root/relay"
+export COLAB_MODEL_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+mkdir -p "$run_root/bench" "$COLAB_RELAY_DIR"
+ln -s "$PWD/evals/development/environment" "$run_root/bench/environment"
+ln -s "$PWD/evals/development/tasks" "$run_root/bench/tasks"
+bundle exec ruby -ryaml -e '
+  config = YAML.load_file("evals/development/bench.yml")
+  config["agent"] = {
+    "name" => "miniswen", "model" => "ollama/Qwen/Qwen3.5-4B",
+    "timeout" => "30m", "step_limit" => 12, "exec_timeout" => 60,
+    "max_output_tokens" => 1024
+  }
+  File.write(ARGV.fetch(0), YAML.dump(config))
+' "$run_root/bench/bench.yml"
+git rev-parse HEAD > "$run_root/repository-revision.txt"
+git diff > "$run_root/working-tree.patch"
+cp experiments/colab-file-provider.rb experiments/colab-agent-inference.py \
+  Gemfile.lock "$run_root/"
+echo "Evidence and interactive request/response files: $run_root"
+exec bundle exec lemans run --require experiments/colab-file-provider.rb \
+  --bench "$run_root/bench" --backend docker --task expense-claim-submission \
+  --attempts 1 --concurrency 1 --runs-dir "$run_root/trials"
