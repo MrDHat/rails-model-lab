@@ -43,7 +43,7 @@ class ReportTests(unittest.TestCase):
             "trial": "trial", "outcome": {"name": "agent_error", "scored": False},
             "reward": 0, "duration": 12})
         result = summarize(self.root)
-        self.assertEqual(result["accepted_input_tokens"], 20)
+        self.assertEqual(result["generated_input_tokens"], 20)
         self.assertEqual(len(result["runtime_errors"]), 1)
         self.assertEqual(result["truncated_responses"], ["success"])
         self.assertNotIn("reward", result["trials"][0])
@@ -78,6 +78,26 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(trial["reward"], 1.0)
         self.assertIsNone(trial["submission"])
         self.assertEqual(trial["agent_status"], "step_limit")
+
+    def test_late_response_is_generated_but_not_consumed(self):
+        for identity in ("parsed", "late"):
+            self.write(f"relay/{identity}.request.json", {
+                "id": identity, "model": "model", "prefill_chunk_size": 1024, "relay_protocol": 2})
+            self.response(identity)
+        self.write("relay/parsed.consumed.json", {"relay_id": "parsed", "revision": "pinned"})
+        result = summarize(self.root)
+        self.assertEqual(result["generated_input_tokens"], 40)
+        self.assertEqual(result["consumption_receipts"], {
+            "available_for_all_requests": True, "parsed_response_ids": ["parsed"],
+            "parsed_input_tokens": 20, "parsed_output_tokens": 10})
+
+    def test_legacy_receipts_are_unknown_and_mismatches_rejected(self):
+        self.request("legacy")
+        self.response("legacy")
+        self.assertFalse(summarize(self.root)["consumption_receipts"]["available_for_all_requests"])
+        self.write("relay/legacy.consumed.json", {"relay_id": "wrong", "revision": "pinned"})
+        with self.assertRaises(ValueError):
+            summarize(self.root)
 
 
 if __name__ == "__main__":

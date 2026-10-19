@@ -27,6 +27,7 @@ begin
     request = JSON.parse(File.read(path))
     raise 'bad cap' unless request['max_new_tokens'] == 2048
     raise 'input budget lost' unless request['input_token_limit'] == 12288
+    raise 'protocol missing' unless request['relay_protocol'] == 2
     raise 'prefill setting lost' unless request['prefill_chunk_size'] == 1024
     response = {relay_id: request.fetch('id'), revision: 'test-revision', model: model.id}
     if scenario == :success
@@ -45,6 +46,8 @@ begin
       message = worker.value
       raise 'tokens lost' unless message.input_tokens == 10 && message.output_tokens == 5
       raise 'command changed' unless message.tool_calls.fetch('fixture').arguments.fetch('command') == 'echo fixture'
+      receipt = JSON.parse(File.read(path.sub('.request.json', '.consumed.json')))
+      raise 'consumption not recorded' unless receipt['relay_id'] == request['id'] && receipt['parsed_at']
     else
       begin
         worker.value
@@ -53,6 +56,7 @@ begin
         expected = scenario == :runtime_error ? 'Colab OutOfMemoryError: CUDA fixture' : 'identity or revision mismatch'
         raise 'wrong error' unless error.message.include?(expected)
       end
+      raise 'failed response consumed' if File.exist?(path.sub('.request.json', '.consumed.json'))
     end
   end
   puts 'Transport fixtures passed: command/tokens, runtime error, revision mismatch'

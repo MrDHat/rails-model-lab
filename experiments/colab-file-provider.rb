@@ -4,6 +4,7 @@
 # execution loop and grader are unchanged. No inference endpoint is exposed.
 require "miniswen"
 require "fileutils"
+require "time"
 
 module ColabFileProvider
   def complete(messages, tools:, temperature:, model:, params: {}, **)
@@ -11,7 +12,7 @@ module ColabFileProvider
     FileUtils.mkdir_p(directory)
     id = SecureRandom.uuid
     request = {
-      id: id, model: model.id,
+      id: id, model: model.id, relay_protocol: 2,
       messages: format_messages(messages),
       tools: tools.map { |_, tool| tool_for(tool) },
       max_new_tokens: params.fetch(:max_tokens, 1024),
@@ -39,7 +40,15 @@ module ColabFileProvider
       error = data.fetch("error")
       raise Miniswen::InfrastructureError, "Colab #{error.fetch('type')}: #{error.fetch('message')}"
     end
-    parse_completion_response(Struct.new(:body).new(data))
+    message = parse_completion_response(Struct.new(:body).new(data))
+    # A response file can arrive after timeout. Only the consumer can attest
+    # that it parsed an answer; this receipt does not imply command execution.
+    receipt = File.join(directory, "#{id}.consumed.json")
+    File.write("#{receipt}.tmp", JSON.generate(
+      relay_id: id, revision: data.fetch("revision"), parsed_at: Time.now.utc.iso8601(6)
+    ))
+    File.rename("#{receipt}.tmp", receipt)
+    message
   end
 end
 

@@ -71,13 +71,23 @@ python3 bin/report-colab-run runs/qwen-development-XXXXXX
 PYTHONDONTWRITEBYTECODE=1 python3 experiments/test-colab-report.py
 ```
 
-The report keeps accepted generation usage separate from trial outcome and
+The report keeps generated usage separate from trial outcome and
 submission. It lists pending requests, relayed runtime errors, truncations,
 observed runtime settings, and allocated GPU peaks. Only a scored harness
 result supplies a reward. Missing trial results stay absent, and missing
 historical runtime settings appear as `null`; neither proves completion.
 External diagnostics saved outside the relay are excluded. Request/response
 identity or prefill-setting mismatches fail the report instead of being counted.
+
+Protocol 2 requests also record a `*.consumed.json` receipt after the local
+provider validates and parses an answer. A response file alone proves only
+generation: it may arrive after the consumer timed out. The report's
+`generated_*` fields include such late answers; `consumption_receipts` reports
+which answers the provider parsed. A receipt does not prove command execution,
+submission, or grading. Check the trajectory and harness result for those.
+For older runs, `available_for_all_requests` is false and missing receipts
+mean unknown consumption; use the preserved agent result's token totals.
+This replaces the misleading `accepted_*` summary field names.
 
 ## Runtime diagnostics and failures
 

@@ -13,7 +13,7 @@ def summarize(root):
         if request["id"] != path.name.removesuffix(".request.json"):
             raise ValueError(f"Request identity mismatch: {path.name}")
         requests[request["id"]] = request
-    successful, errors, pending = [], [], []
+    successful, errors, pending, consumed = [], [], [], []
     for path in (root / "relay").glob("*.response.json"):
         if path.name.removesuffix(".response.json") not in requests:
             raise ValueError(f"Response without request: {path.name}")
@@ -31,6 +31,12 @@ def summarize(root):
             if response.get("prefill_chunk_size") != request.get("prefill_chunk_size"):
                 raise ValueError(f"Prefill setting mismatch: {path.name}")
             successful.append(response)
+            receipt_path = root / "relay" / f"{identity}.consumed.json"
+            if receipt_path.exists():
+                receipt = json.loads(receipt_path.read_text())
+                if receipt.get("relay_id") != identity or receipt.get("revision") != response.get("revision"):
+                    raise ValueError(f"Consumption identity mismatch: {receipt_path.name}")
+                consumed.append(response)
     trials = []
     for path in sorted((root / "trials").rglob("result.json")):
         result = json.loads(path.read_text())
@@ -55,11 +61,18 @@ def summarize(root):
                           sort_keys=True) for item in successful}
     return {
         "run": str(root), "requests": len(requests),
-        "successful_responses": len(successful), "pending_requests": pending,
+        "generated_responses": len(successful), "pending_requests": pending,
         "runtime_errors": errors,
-        "accepted_input_tokens": sum(item["usage"]["prompt_tokens"] for item in successful),
-        "accepted_output_tokens": sum(item["usage"]["completion_tokens"] for item in successful),
-        "accepted_generation_seconds": round(sum(item["seconds"] for item in successful), 2),
+        "generated_input_tokens": sum(item["usage"]["prompt_tokens"] for item in successful),
+        "generated_output_tokens": sum(item["usage"]["completion_tokens"] for item in successful),
+        "generated_seconds": round(sum(item["seconds"] for item in successful), 2),
+        "consumption_receipts": {
+            "available_for_all_requests": bool(requests) and all(
+                request.get("relay_protocol") == 2 for request in requests.values()),
+            "parsed_response_ids": [item["relay_id"] for item in consumed],
+            "parsed_input_tokens": sum(item["usage"]["prompt_tokens"] for item in consumed),
+            "parsed_output_tokens": sum(item["usage"]["completion_tokens"] for item in consumed),
+        },
         "peak_allocated_gpu_GiB": max((item["peak_gpu_GiB"] for item in successful), default=None),
         "truncated_responses": [item["relay_id"] for item in successful
                                 if item["choices"][0]["finish_reason"] == "length"],

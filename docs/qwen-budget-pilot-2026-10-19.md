@@ -93,3 +93,9 @@ fixed. No score, completion, or API execution is inferred from a response file.
 The budget diagnostics are successful, but reliable end-to-end completion
 remains unproven. The next infrastructure checkpoint should record response
 consumption and correct the summary labels before another model attempt.
+
+The follow-up reporting change now names file totals `generated_*` and records
+protocol 2 consumption receipts for future requests. Historical files remain
+unchanged, and this trial still has no receipts: its agent result remains the
+source for consumed usage. These changes improve accounting; they do not fix
+the browser relay's delivery latency or make this trial scored.
