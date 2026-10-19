@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+export COLAB_STEP_LIMIT="${COLAB_STEP_LIMIT:-12}"
+if ! [[ "$COLAB_STEP_LIMIT" =~ ^[1-9][0-9]*$ ]]; then
+  echo "COLAB_STEP_LIMIT must be a positive integer" >&2
+  exit 2
+fi
 mkdir -p runs
 run_root="$(mktemp -d "$PWD/runs/qwen-development-XXXXXX")"
 export COLAB_RELAY_DIR="$run_root/relay"
@@ -12,14 +17,14 @@ bundle exec ruby -ryaml -e '
   config = YAML.load_file("evals/development/bench.yml")
   config["agent"] = {
     "name" => "miniswen", "model" => "ollama/Qwen/Qwen3.5-4B",
-    "timeout" => "30m", "step_limit" => 12, "exec_timeout" => 60,
+    "timeout" => "30m", "step_limit" => Integer(ENV.fetch("COLAB_STEP_LIMIT")), "exec_timeout" => 60,
     "max_output_tokens" => 1024
   }
   File.write(ARGV.fetch(0), YAML.dump(config))
 ' "$run_root/bench/bench.yml"
 git rev-parse HEAD > "$run_root/repository-revision.txt"
 git diff > "$run_root/working-tree.patch"
-cp experiments/colab-file-provider.rb experiments/colab-agent-inference.py \
+cp bin/run-colab-development experiments/colab-file-provider.rb experiments/colab-agent-inference.py \
   Gemfile.lock "$run_root/"
 echo "Evidence and interactive request/response files: $run_root"
 exec bundle exec lemans run --require experiments/colab-file-provider.rb \
