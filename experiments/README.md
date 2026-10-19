@@ -107,5 +107,15 @@ After probing, reload the model or explicitly reset attention and
 `prefill_chunk_size` before a future protocol. Do not assume the old defaults
 remain in the live runtime. Record runtime settings alongside each result.
 
+Input and output budgets are also explicit per request. Defaults remain
+8,192 input tokens and 1,024 output tokens. Set `COLAB_INPUT_TOKEN_LIMIT` and
+`COLAB_OUTPUT_TOKEN_LIMIT` before launch to change them; the local runner and
+helper enforce ceilings of 16,384 and 4,096 respectively. Those ceilings are
+safety bounds, not a claim that every permitted configuration fits the T4.
+Load the current helper, which records the effective limits in each response.
+The [budget protocol](../docs/qwen-budget-pilot-2026-10-19.md) first checks
+12,288 input / 2,048 output with a separate synthetic allocation test and a
+replay diagnostic before launching a fresh coding attempt.
+
 The parser follows the pinned checkpoint's
 [native chat template](https://huggingface.co/Qwen/Qwen3.5-4B/blob/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/chat_template.jinja).

@@ -3,6 +3,18 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export COLAB_STEP_LIMIT="${COLAB_STEP_LIMIT:-12}"
 export COLAB_PREFILL_CHUNK_SIZE="${COLAB_PREFILL_CHUNK_SIZE:-0}"
+export COLAB_INPUT_TOKEN_LIMIT="${COLAB_INPUT_TOKEN_LIMIT:-8192}"
+export COLAB_OUTPUT_TOKEN_LIMIT="${COLAB_OUTPUT_TOKEN_LIMIT:-1024}"
+for budget in COLAB_INPUT_TOKEN_LIMIT COLAB_OUTPUT_TOKEN_LIMIT; do
+  if ! [[ "${!budget}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "$budget must be a positive integer" >&2
+    exit 2
+  fi
+done
+if (( COLAB_INPUT_TOKEN_LIMIT > 16384 || COLAB_OUTPUT_TOKEN_LIMIT > 4096 )); then
+  echo "Pilot ceilings: 16384 input tokens, 4096 output tokens" >&2
+  exit 2
+fi
 if ! [[ "$COLAB_STEP_LIMIT" =~ ^[1-9][0-9]*$ ]]; then
   echo "COLAB_STEP_LIMIT must be a positive integer" >&2
   exit 2
@@ -23,7 +35,7 @@ bundle exec ruby -ryaml -e '
   config["agent"] = {
     "name" => "miniswen", "model" => "ollama/Qwen/Qwen3.5-4B",
     "timeout" => "30m", "step_limit" => Integer(ENV.fetch("COLAB_STEP_LIMIT")), "exec_timeout" => 60,
-    "max_output_tokens" => 1024
+    "max_output_tokens" => Integer(ENV.fetch("COLAB_OUTPUT_TOKEN_LIMIT"))
   }
   File.write(ARGV.fetch(0), YAML.dump(config))
 ' "$run_root/bench/bench.yml"

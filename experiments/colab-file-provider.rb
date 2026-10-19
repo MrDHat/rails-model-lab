@@ -15,6 +15,7 @@ module ColabFileProvider
       messages: format_messages(messages),
       tools: tools.map { |_, tool| tool_for(tool) },
       max_new_tokens: params.fetch(:max_tokens, 1024),
+      input_token_limit: Integer(ENV.fetch("COLAB_INPUT_TOKEN_LIMIT", "8192")),
       prefill_chunk_size: Integer(ENV.fetch("COLAB_PREFILL_CHUNK_SIZE", "0")).then { |size| size.zero? ? nil : size },
       enable_thinking: false, do_sample: false
     }

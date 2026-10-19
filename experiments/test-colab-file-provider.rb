@@ -3,6 +3,7 @@ require 'tmpdir'
 ENV['COLAB_RELAY_DIR'] = Dir.mktmpdir('colab-relay-test-')
 ENV['COLAB_MODEL_REVISION'] = 'test-revision'
 ENV['COLAB_PREFILL_CHUNK_SIZE'] = '1024'
+ENV['COLAB_INPUT_TOKEN_LIMIT'] = '12288'
 require_relative 'colab-file-provider'
 provider = RubyLLM::Providers::Ollama.new(RubyLLM.config)
 model = RubyLLM::Model::Info.default('Qwen/Qwen3.5-4B', 'ollama')
@@ -11,7 +12,7 @@ begin
   %i[success runtime_error wrong_revision].each do |scenario|
     worker = Thread.new do
       provider.complete([RubyLLM::Message.new(role: :user, content: 'Transport fixture')],
-                        tools: {}, temperature: nil, model: model, params: {max_tokens: 1024})
+                        tools: {}, temperature: nil, model: model, params: {max_tokens: 2048})
     end
     worker.report_on_exception = false
     path = nil
@@ -24,7 +25,8 @@ begin
     end
     raise 'request missing' unless path
     request = JSON.parse(File.read(path))
-    raise 'bad cap' unless request['max_new_tokens'] == 1024
+    raise 'bad cap' unless request['max_new_tokens'] == 2048
+    raise 'input budget lost' unless request['input_token_limit'] == 12288
     raise 'prefill setting lost' unless request['prefill_chunk_size'] == 1024
     response = {relay_id: request.fetch('id'), revision: 'test-revision', model: model.id}
     if scenario == :success

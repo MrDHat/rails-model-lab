@@ -16,6 +16,17 @@ inference.REVISION = inference.EXPECTED_REVISION
 
 
 class RelayTests(unittest.TestCase):
+    def test_budgets_and_boundaries(self):
+        self.assertEqual(inference.generation_limits({"max_new_tokens": 1024}, 8192), (8192, 1024))
+        request = {"input_token_limit": 12288, "max_new_tokens": 2048}
+        self.assertEqual(inference.generation_limits(request, 12288), (12288, 2048))
+        with self.assertRaisesRegex(ValueError, '12289 > 12288'):
+            inference.generation_limits(request, 12289)
+        for key, value in (("input_token_limit", 16385), ("max_new_tokens", 4097),
+                           ("max_new_tokens", True), ("input_token_limit", 0)):
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                inference.generation_limits({**request, key: value}, 1)
+
     def test_request_controls_prefill_instead_of_notebook_default(self):
         class Inputs(dict):
             def to(self, device):
@@ -34,7 +45,9 @@ class RelayTests(unittest.TestCase):
         torch.cuda.max_memory_allocated.return_value = 1
         request = {"id": "fixture", "model": "fixture-model", "messages": [], "tools": [], "max_new_tokens": 1024}
         with patch.dict("sys.modules", {"torch": torch}), patch.object(inference, "model", model, create=True), patch.object(inference, "processor", processor, create=True):
-            for size in (1024, None):
+            for size, cap in ((1024, 2048), (None, 1024)):
+                request["max_new_tokens"] = cap
+                request["input_token_limit"] = 12288
                 if size is None:
                     request.pop("prefill_chunk_size", None)
                 else:
@@ -42,6 +55,9 @@ class RelayTests(unittest.TestCase):
                 response = inference._colab_complete(json.dumps(request))
                 self.assertEqual(model.generate.call_args.kwargs["prefill_chunk_size"], size)
                 self.assertEqual(response["prefill_chunk_size"], size)
+                self.assertEqual(model.generate.call_args.kwargs["max_new_tokens"], cap)
+                self.assertEqual(response["max_new_tokens"], cap)
+                self.assertEqual(response["input_token_limit"], 12288)
 
     def test_multiline_commands_and_extra_parameters(self):
         command = "cat <<'EOF' > file.rb\nputs 'hello'\nEOF"

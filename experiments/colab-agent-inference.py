@@ -8,6 +8,18 @@ import uuid
 EXPECTED_REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
 
 
+def generation_limits(request, input_tokens):
+    input_limit = request.get("input_token_limit", 8192)
+    output_limit = request["max_new_tokens"]
+    if type(input_limit) is not int or not 1 <= input_limit <= 16384:
+        raise ValueError("input_token_limit must be an integer in 1..16384")
+    if type(output_limit) is not int or not 1 <= output_limit <= 4096:
+        raise ValueError("max_new_tokens must be an integer in 1..4096")
+    if input_tokens > input_limit:
+        raise ValueError(f"Pilot input budget exceeded: {input_tokens} > {input_limit}")
+    return input_limit, output_limit
+
+
 def parse_calls(raw):
     calls = []
     # The pinned checkpoint's native template uses XML function parameters.
@@ -44,8 +56,7 @@ def _colab_complete(request_json):
         enable_thinking=False,
     ).to("cuda")
     input_tokens = inputs["input_ids"].shape[-1]
-    assert input_tokens <= 8192, "Pilot input budget exceeded"
-    cap = min(request["max_new_tokens"], 1024)
+    input_limit, cap = generation_limits(request, input_tokens)
     prefill_chunk_size = request.get("prefill_chunk_size")
     assert prefill_chunk_size is None or (type(prefill_chunk_size) is int and prefill_chunk_size > 0)
     end_token = processor.tokenizer.convert_tokens_to_ids("<|im_end|>")
@@ -76,6 +87,8 @@ def _colab_complete(request_json):
         "eos_token_id": end_token,
         "attention": model.config.text_config._attn_implementation,
         "prefill_chunk_size": prefill_chunk_size,
+        "input_token_limit": input_limit,
+        "max_new_tokens": cap,
         "seconds": round(time.perf_counter() - started, 2),
         "peak_gpu_GiB": round(torch.cuda.max_memory_allocated() / 2**30, 2),
     }
