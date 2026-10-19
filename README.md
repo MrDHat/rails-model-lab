@@ -6,6 +6,11 @@ Agents on Rails benchmark before and after training.
 The imported chat is background, not a finalized experiment specification. The model,
 GPU host, training method, and budget remain provisional.
 
+Qwen3.5-4B now passes a short Colab T4 inference smoke test. See the
+[runtime and result record](docs/qwen-colab-smoke-2026-10-19.md) and
+[reusable script](experiments/qwen-colab-smoke.py). A model coding evaluation
+has not run yet.
+
 ## Development evaluations
 
 Our first independent task is runnable:
