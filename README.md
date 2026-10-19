@@ -6,6 +6,22 @@ Agents on Rails benchmark before and after training.
 The imported chat is background, not a finalized experiment specification. The model,
 GPU host, training method, and budget remain provisional.
 
+## Development evaluations
+
+Our first independent task is runnable:
+[expense claim submission](evals/development/tasks/expense-claim-submission/instruction.md).
+Its [evaluation design](evals/development/tasks/expense-claim-submission/design.md)
+defines the starting app, test cases, and scoring. Run its no-model checks:
+
+```sh
+bash bin/validate-development
+python3 bin/validate-development-mutations
+```
+
+See the [validation record](docs/development-eval-validation-2026-10-19.md).
+Development evaluation material stays out of training data and its scores
+are reported separately from the official benchmark.
+
 ## First milestone: validate the evaluation environment
 
 **Completed on one task:** reference solution scored 1.0; unchanged app

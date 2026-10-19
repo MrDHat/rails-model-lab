@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Exercise deliberate wrong fixes in disposable containers; never calls a model."""
+import difflib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+BENCH = ROOT / 'evals/development'
+TASK = BENCH / 'tasks/expense-claim-submission'
+IMAGE = 'rails-model-lab-dev-eval'
+OUT = ROOT / 'runs/development-mutations'
+subprocess.run(['docker', 'build', '-q', '-t', IMAGE, str(BENCH / 'environment')], check=True)
+assets = Path(subprocess.check_output(['bundle', 'show', 'lemans'], cwd=ROOT, text=True).strip()) / 'lib/lemans/trial/verifier/assets'
+model_path = 'app/models/expense_claim.rb'
+controller_path = 'app/controllers/expense_claims_controller.rb'
+model = (BENCH / 'environment/app' / model_path).read_text()
+controller = (BENCH / 'environment/app' / controller_path).read_text()
+reference = model.replace('\nend\n', '''
+  with_options if: -> { status == "submitted" } do
+    validates :merchant, :incurred_on, presence: true
+    validates :amount_cents, numericality: { greater_than: 0 }
+  end
+end
+''')
+variants = {
+    'unchanged': {},
+    'reference': {model_path: reference},
+    'validates_drafts': {model_path: reference.replace('if: -> { status == "submitted" }', 'if: -> { true }')},
+    'creation_only': {model_path: reference.replace('status == "submitted"', 'status == "submitted" && new_record?')},
+    'accepts_whitespace': {model_path: reference.replace('validates :merchant, :incurred_on, presence: true', '''validates :incurred_on, presence: true
+    validates :merchant, length: { minimum: 1 }, allow_nil: false''')},
+    'accepts_zero': {model_path: reference.replace('greater_than: 0', 'greater_than_or_equal_to: 0')},
+    'partial_write': {
+        model_path: reference,
+        controller_path: controller.replace('claim.assign_attributes(claim_params)', '''claim.update_column(:merchant, claim_params[:merchant]) if claim_params.key?(:merchant)
+    claim.assign_attributes(claim_params)''')
+    },
+}
+summary = {}
+with tempfile.TemporaryDirectory(prefix='rails-dev-validation-') as staging:
+    staging = Path(staging)
+    tests = staging / 'tests'
+    tests.mkdir()
+    shutil.copy(TASK / 'verification_test.rb', tests)
+    shutil.copy(TASK / 'tests/verify.sh', tests)
+    for asset in assets.glob('*.rb'):
+        shutil.copy(asset, tests)
+    for name, changes in variants.items():
+        logdir = OUT / name
+        logdir.mkdir(parents=True, exist_ok=True)
+        for filename in ('checks.json', 'reward.txt'):
+            (logdir / filename).unlink(missing_ok=True)
+        patch = staging / 'candidate.patch'
+        patch.write_text(''.join(''.join(difflib.unified_diff(
+            (BENCH / 'environment/app' / path).read_text().splitlines(True),
+            content.splitlines(True), fromfile='a/' + path, tofile='b/' + path
+        )) for path, content in changes.items()))
+        command = 'bash /tests/verify.sh'
+        if changes:
+            command = 'git apply /candidate.patch && ' + command
+        result = subprocess.run([
+            'docker', 'run', '--rm', '--network', 'none',
+            '-v', f'{tests}:/tests:ro', '-v', f'{patch}:/candidate.patch:ro',
+            '-v', f'{logdir}:/logs', '-e', 'WORKDIR=/app', '-e', 'TESTS=/tests',
+            '-e', 'LOGS=/logs', '-e', 'RUBYOPT=-I/tests', IMAGE, 'bash', '-c', command
+        ], capture_output=True, text=True)
+        (logdir / 'container.log').write_text(result.stdout + result.stderr)
+        checks_file = logdir / 'checks.json'
+        checks = json.loads(checks_file.read_text())['checks'] if checks_file.exists() else {}
+        summary[name] = {'exit_code': result.returncode, 'checks': checks}
+        expected = 0 if name == 'reference' else 1
+        print(f'{name}: exit {result.returncode}, expected {expected}', flush=True)
+        if result.returncode != expected:
+            raise SystemExit(f'Unexpected result; inspect {logdir}')
+        if name == 'reference' and (not checks or any(v != 'pass' for v in checks.values())):
+            raise SystemExit('Reference did not report all checks as passing')
+OUT.mkdir(parents=True, exist_ok=True)
+(OUT / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+print(f'All seven validation cases behaved as expected. Evidence: {OUT}')
