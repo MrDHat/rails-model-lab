@@ -1,87 +1,77 @@
 # Rails model lab
 
-Learn post-training by measuring a small open-weight model on the official
-Agents on Rails benchmark before and after training.
+Measure a small open-weight model on the official Agents on Rails benchmark
+before considering training. Use **lemans 1.5.2**, its **miniswen agent**, and the
+unchanged official tasks and graders. This repository adds a local inference
+adapter, a runner that freezes inputs, and an evidence report.
 
-The imported chat is background, not a finalized experiment specification. The model,
-GPU host, training method, and budget remain provisional.
+The local community 4-bit Qwen variant completed one development task with an
+explicit submission and reward 1.0: all 18 hidden tests passed. No official
+model baseline or training run has completed. See [results](docs/results.md).
 
-Qwen3.5-4B now passes a short Colab T4 inference smoke test. See the
-[runtime and result record](docs/qwen-colab-smoke-2026-10-19.md) and
-[reusable script](experiments/qwen-colab-smoke.py).
+## Run the official baseline
 
-The first unchanged-model development attempt scored **1.0**, passing all 27
-hidden tests, but reached its 12-turn limit before submitting. See the
-[pilot result and limits](docs/qwen-development-pilot-2026-10-19.md) and
-[interactive Colab workflow](experiments/README.md). This is one development
-task, not an official benchmark result.
-
-A fresh [32-turn follow-up](docs/qwen-32-turn-pilot-2026-10-19.md) hit a Colab
-GPU memory error on request 15 and is **unscored**. Longer-context runtime
-validation is required before another scored attempt.
-The [runtime diagnostics](docs/colab-runtime-diagnostics-2026-10-19.md) record
-explicit error propagation and a successful separate chunked-prefill probe on
-the previously failing request.
-
-The [fresh chunked-prefill attempt](docs/qwen-chunked-pilot-2026-10-19.md)
-passed that memory failure point and the visible baseline, then exceeded its
-fixed context guard after two truncated outputs. It is also **unscored**, with
-no submission. Runtime errors now propagate to a preserved invalid trial.
-
-## Development evaluations
-
-Our first independent task is runnable:
-[expense claim submission](evals/development/tasks/expense-claim-submission/instruction.md).
-Its [evaluation design](evals/development/tasks/expense-claim-submission/design.md)
-defines the starting app, test cases, and scoring. Run its no-model checks:
-
-```sh
-bash bin/validate-development
-python3 bin/validate-development-mutations
-```
-
-See the [validation record](docs/development-eval-validation-2026-10-19.md).
-Development evaluation material stays out of training data and its scores
-are reported separately from the official benchmark.
-
-## First milestone: validate the evaluation environment
-
-**Completed on one task:** reference solution scored 1.0; unchanged app
-scored 0.0; both runs completed without model calls.
-See [the validation record](docs/validation-2026-10-18.md).
-
-Use the official tasks, graders, lemans harness, and (for model runs)
-miniswen agent. Training will use separate, independently authored material;
-official benchmark prompts, solutions, tests, and run logs must not enter
-training datasets.
-
-Requirements: Ruby 3.4+, Bundler, Git, and a running Docker daemon.
+Requirements: Ruby 3.4+, Bundler, Docker, and the existing Apple Silicon MLX
+runtime. Keep the Mac lid open; the runner prevents idle sleep only while active.
 
 ```sh
 bash bin/setup-benchmark
-bash bin/validate-benchmark
+bash bin/validate-benchmark at-announce-once at-compact-positions at-tenant-isolation
+bash bin/run-local-evaluation at-announce-once
+python3 bin/report-local-run runs/local-evaluation-RUN_ID
 ```
 
-The setup script checks out the revision in `benchmark-revision.txt` and
-installs the harness version in `Gemfile.lock`. The benchmark lives under
-ignored `vendor/ai-evals`; sparse checkout excludes published run logs.
+Run the three tasks sequentially, one fresh attempt each, in the
+[frozen protocol](docs/local-baseline-protocol-2026-10-20.md). The runner requires
+a clean official checkout at the revision in `benchmark-revision.txt`. It
+copies official application/build/task files to a fresh ignored run directory,
+records file hashes and model hashes, and invokes lemans with the local provider.
+Official graders and reference solutions remain outside the model workspace.
+Infrastructure failures stay unscored; preserve every attempt.
 
-Validation runs only the official `at-announce-once` task:
+Fixed settings: 32 steps, 16,384 input / 2,048 output tokens per generation,
+1,024 prefill chunks, greedy decoding, thinking disabled, EOS 248046, 30-minute
+agent deadline, 600-second response deadline and 60-second command timeout.
+The runner changes the model/agent configuration, not the official verifier.
 
-- `oracle` applies the supplied solution; expect full credit.
-- `nop` leaves the starting code alone; expect zero credit.
+## Local model
 
-Neither agent calls a model. Docker downloads and builds the Rails runtime.
-Results and verifier logs are written under ignored `runs/validation-*`.
-Inspect result outcomes as well as scores: infrastructure errors are not
-model failures, and a successful command alone does not establish validity.
+The existing runtime is `runs/mlx-runtime/venv` (Python 3.14.5). Its exact package
+versions are in [mlx-requirements.txt](experiments/mlx-requirements.txt).
+Model: `mlx-community/Qwen3.5-4B-4bit`, revision
+`0e7ffd5c629ef7719d4cbc04069232580bfa9d9c`. The upstream base commit is unknown;
+report this variant separately from the original Colab float16 checkpoint.
+The downloaded weights occupy about 3 GB; reuse the existing snapshot.
 
-This milestone is an infrastructure check, not a model baseline or a
-leaderboard result. Later comparisons must record task scope, repetitions,
-model and adapter revisions, agent version, inference settings, resource
-limits, and runtime differences from the published runs. Hosting the model
-on Colab or another GPU service remains to be evaluated.
+`runs/mlx-runtime/model-path.txt` contains the absolute snapshot directory,
+whose final component is the revision above. `runs/mlx-runtime/requirements.lock`
+records the installed packages. To recreate the environment, use Python 3.14.5,
+install the pinned requirements into that venv, download that exact model
+revision, and write its snapshot path to `model-path.txt`. The runner and worker
+use offline inference, local files and no remote Python code.
+
+The Ruby file provider reuses RubyLLM's Ollama message/tool serialization.
+It never makes an Ollama HTTP request. The Python worker uses the model's native
+tool template and parses complete bash calls without repairing generated output.
+Lemans owns command execution, submission, verification and scoring.
+
+## Checks and repository scope
+
+```sh
+bundle exec ruby experiments/test-local-file-provider.rb
+python3 experiments/test-mlx-file-worker.py
+python3 experiments/test-local-report.py
+```
+
+These checks need no model or Docker. Official oracle/nop controls above use
+Docker and no model. Raw run artifacts remain under ignored `runs/`.
+
+The obsolete Colab automation, custom development tasks and their validators
+are removed from the active route. Their exact code and detailed experiment
+history remain on the preserved branches referenced by [results](docs/results.md).
+No further infrastructure features or custom tasks are planned unless a concrete
+failure blocks the official baseline. Benchmark prompts, graders, reference
+solutions, generated patches and run logs must never enter training data.
 
 Sources: [benchmark](https://github.com/rails/ai-evals),
-[methodology](https://github.com/rails/ai-evals/blob/main/methodology.md),
 [harness](https://github.com/rails/lemans).
