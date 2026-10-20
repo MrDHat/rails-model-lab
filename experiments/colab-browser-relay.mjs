@@ -94,21 +94,31 @@ export function createRelay(tab, runRoot, settings) {
       return {state: 'started', id: request.id, region: active.region};
     }
     const region = tab.playwright.getByRole('region', {name: active.region, exact: true});
-    try {
-      await region.getByText(active.request.id, {exact: false}).first()
-        .waitFor({state: 'visible', timeoutMs: 40000});
-    } catch (error) {
-      if (!/timeout|timed out|deadline exceeded/i.test(String(error))) throw error;
+    const jsonLine = text => text.split('\n').find(value => value.trim().startsWith('{"relay_id"'));
+    let line = jsonLine(await region.innerText());
+    if (!line) {
+      try {
+        await region.getByText(active.request.id, {exact: false}).first()
+          .waitFor({state: 'visible', timeoutMs: 40000});
+      } catch (error) {
+        if (!/timeout|timed out|deadline exceeded/i.test(String(error))) throw error;
+      }
+      // Colab can expose complete DOM text while its text locator finds no
+      // visible match. Read again even when that visibility wait times out.
+      line = jsonLine(await region.innerText());
+    }
+    if (!line) return {state: 'generating', id: active.request.id};
+    let response;
+    try { response = JSON.parse(line); }
+    catch (error) {
+      if (!(error instanceof SyntaxError)) throw error;
+      // Notebook stdout may arrive in fragments; never deliver partial JSON.
       return {state: 'generating', id: active.request.id};
     }
-    const text = await region.innerText();
-    const line = text.split('\n').find(value => value.trim().startsWith('{"relay_id"'));
-    if (!line) throw new Error('Response JSON missing from cell output');
-    const response = JSON.parse(line);
     const state = await exchange.deliver(active.request, response);
     const result = {state, id: active.request.id, error: response.error,
       usage: response.usage, seconds: response.seconds,
-      finish_reason: response.choices?.[0].finish_reason};
+      finish_reason: response.choices?.[0]?.finish_reason};
     active = null;
     return result;
   }

@@ -107,3 +107,21 @@ before evaluation. Offline wiring checks for both tasks validated selected task,
 all hashes, non-symlink snapshots, and absence of grader/reference files inside
 the starter app. They did not start an agent or Docker and are not scored runs:
 `runs/qwen-development-Az7Kdi` and `runs/qwen-development-pX1kA7`.
+
+## Fixed-budget expense attempt and output-text correction
+
+PR #11 publishes source `29f0ecd`. Its fresh expense attempt delivered and
+consumed 30 generations without truncation, timeout, OOM, or late responses,
+but ended unscored on request 31's input guard (12,321 > 12,288). The model
+repeated a faulty validation conditional despite identifying it in prose.
+Twelve deliveries needed an explicitly recorded DOM-text fallback because
+visibility matching missed readable output. The [attempt record](qwen-relay-attempt-2026-10-20.md)
+preserves the limits, usage, evidence, and distinction between model behavior
+and transport assistance.
+
+The relay now reads complete output text directly, with a regression fixture
+for missing visible matches and fragmented JSON. All six fixtures pass. A fresh
+live probe passed the revised helper/provider path without a fallback. The
+pending reload request proved unnecessary: work continued without reloading
+or changing account/cookie security settings. The next measured run will use
+the independent team-ticket task with the same model and budgets.

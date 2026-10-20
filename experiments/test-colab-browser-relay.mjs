@@ -1,11 +1,11 @@
-// Real filesystem protocol fixtures. No browser, GPU, model, or task content.
+// Real filesystem and stubbed browser fixtures. No live browser, GPU, or model.
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
-import {createExchange} from './colab-browser-relay.mjs';
+import {createExchange, createRelay} from './colab-browser-relay.mjs';
 
 const revision = '851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a';
 const settings = {prefill_chunk_size:1024, input_token_limit:12288, max_new_tokens:2048};
@@ -66,6 +66,35 @@ test('identity-tagged runtime errors pass through unchanged', async () => {
   await fixture(async ({request,file,exchange}) => {
     const response={relay_id:request.id,model:request.model,revision,error:{type:'RuntimeError',message:'fixture'}};
     assert.equal(await exchange.deliver(request,response),'delivered');
+    assert.deepEqual(JSON.parse(await fs.readFile(file('response'),'utf8')),response);
+  });
+});
+
+test('DOM text delivers complete output despite missing visible text matches; fragments wait', async () => {
+  await fixture(async ({root,raw,response,file}) => {
+    let output = '', cellSource;
+    const region = {
+      innerText: async () => output,
+      getByText: () => ({first: () => ({waitFor: async () => {
+        throw new Error('Playwright selector deadline exceeded');
+      }})}),
+    };
+    const cell = {getByRole: role => role === 'textbox'
+      ? {fill: async source => { cellSource = source; }} : {click: async () => {}}};
+    const tab = {playwright: {
+      domSnapshot: async () => '- region "Cell 0 output"',
+      getByRole: (role, {name}) => role === 'button' ? {click: async () => {}}
+        : name === 'Cell 0 output' ? region : cell,
+    }};
+    const relay = createRelay(tab,root,settings);
+    assert.equal((await relay.step()).state,'started');
+    assert.equal(cellSource,`colab_complete(${JSON.stringify(raw)})`);
+    assert.equal((await relay.step()).state,'generating');
+    output = JSON.stringify(response).slice(0,-3);
+    assert.equal((await relay.step()).state,'generating');
+    await assert.rejects(fs.access(file('response')),{code:'ENOENT'});
+    output = 'Runtime warning\n' + JSON.stringify(response);
+    assert.equal((await relay.step()).state,'delivered');
     assert.deepEqual(JSON.parse(await fs.readFile(file('response'),'utf8')),response);
   });
 });

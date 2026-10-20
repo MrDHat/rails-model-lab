@@ -169,3 +169,11 @@ local bench and records their SHA-256 hashes in `evaluation-inputs.json`.
 Only the Dockerfile's app directory enters the agent environment. These local
 copies include grader/reference material for later grading; never send them to
 Colab or use them as training inputs.
+
+A longer expense attempt exposed another visibility-matching limitation:
+complete JSON could be read through the output region's DOM text while UUID
+matching found nothing. The relay now reads that text before and after any
+visibility wait, delivering only complete JSON through the existing exchange.
+Six fixtures include this regression and partial stdout fragments. A fresh live
+probe passed; the [expense attempt record](../docs/qwen-relay-attempt-2026-10-20.md)
+records its unscored input-budget termination and operator delivery fallbacks.
