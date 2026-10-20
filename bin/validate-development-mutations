@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'evals/development'
 TASK = BENCH / 'tasks/expense-claim-submission'
 IMAGE = 'rails-model-lab-dev-eval'
-OUT = ROOT / 'runs/development-mutations'
+OUT = Path(tempfile.mkdtemp(prefix='expense-grader-', dir=ROOT / 'runs'))
 subprocess.run(['docker', 'build', '-q', '-t', IMAGE, str(BENCH / 'environment')], check=True)
 assets = Path(subprocess.check_output(['bundle', 'show', 'lemans'], cwd=ROOT, text=True).strip()) / 'lib/lemans/trial/verifier/assets'
 model_path = 'app/models/expense_claim.rb'
@@ -26,6 +26,9 @@ reference = model.replace('\nend\n', '''
 end
 ''')
 variants = {
+    'runtime_error': {model_path: reference.replace('class ExpenseClaim < ApplicationRecord', 'class ExpenseClaim < ApplicationRecord\n  before_validation { raise NameError, "broken application mutation" }')},
+    'application_load_error': {model_path: 'class ExpenseClaim < MissingApplicationRecord\nend\n'},
+    'setup_failure': {},
     'unchanged': {},
     'reference': {model_path: reference},
     'validates_drafts': {model_path: reference.replace('if: -> { status == "submitted" }', 'if: -> { true }')},
@@ -59,6 +62,8 @@ with tempfile.TemporaryDirectory(prefix='rails-dev-validation-') as staging:
             content.splitlines(True), fromfile='a/' + path, tofile='b/' + path
         )) for path, content in changes.items()))
         command = 'bash /tests/verify.sh'
+        if name == 'setup_failure':
+            command = 'rm config/application.rb && ' + command
         if changes:
             command = 'git apply /candidate.patch && ' + command
         result = subprocess.run([
@@ -71,7 +76,7 @@ with tempfile.TemporaryDirectory(prefix='rails-dev-validation-') as staging:
         checks_file = logdir / 'checks.json'
         checks = json.loads(checks_file.read_text())['checks'] if checks_file.exists() else {}
         summary[name] = {'exit_code': result.returncode, 'checks': checks}
-        expected = 0 if name == 'reference' else 1
+        expected = 2 if name == 'setup_failure' else (0 if name == 'reference' else 1)
         print(f'{name}: exit {result.returncode}, expected {expected}', flush=True)
         if result.returncode != expected:
             raise SystemExit(f'Unexpected result; inspect {logdir}')
@@ -79,4 +84,4 @@ with tempfile.TemporaryDirectory(prefix='rails-dev-validation-') as staging:
             raise SystemExit('Reference did not report all checks as passing')
 OUT.mkdir(parents=True, exist_ok=True)
 (OUT / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
-print(f'All seven validation cases behaved as expected. Evidence: {OUT}')
+print(f'All ten validation cases behaved as expected. Evidence: {OUT}')

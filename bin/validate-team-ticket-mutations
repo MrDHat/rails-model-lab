@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'evals/development-team-tickets'
 TASK = BENCH / 'tasks/team-ticket-boundary'
 IMAGE = 'rails-model-lab-team-tickets'
-OUT = ROOT / 'runs/team-ticket-mutations'
+OUT = Path(tempfile.mkdtemp(prefix='team-ticket-grader-', dir=ROOT / 'runs'))
 subprocess.run(['docker', 'build', '-q', '-t', IMAGE, str(BENCH / 'environment')], check=True)
 assets = Path(subprocess.check_output(['bundle', 'show', 'lemans'], cwd=ROOT, text=True).strip()) / 'lib/lemans/trial/verifier/assets'
 filename = 'app/controllers/tickets_controller.rb'
@@ -20,6 +20,11 @@ reference = original.replace('Ticket.order(:id)', 'current_team.tickets.order(:i
     'Ticket.find(params[:id])', 'current_team.tickets.find(params[:id])').replace(
     ':title, :status, :team_id', ':title, :status')
 variants = {
+    'runtime_error': reference.replace('def index\n', 'def index\n    raise NotFoundError\n'),
+    'hidden_runtime_error': reference.replace('def index\n', 'def index\n    raise NotFoundError if current_team.name == "Alpha"\n'),
+    'application_load_error': 'class TicketsController < MissingApplicationController\nend\n',
+    'missing_verifier': reference,
+    'setup_failure': reference,
     'unchanged': original,
     'reference': reference,
     'list_only': original.replace('Ticket.order(:id)', 'current_team.tickets.order(:id)'),
@@ -46,7 +51,9 @@ with tempfile.TemporaryDirectory(prefix='team-ticket-validation-') as staging:
         patch = staging / 'candidate.patch'
         patch.write_text(''.join(difflib.unified_diff(original.splitlines(True), candidate.splitlines(True),
                                                    fromfile='a/' + filename, tofile='b/' + filename)))
-        command = 'bash /tests/verify.sh'
+        command = ('TESTS=/missing bash /tests/verify.sh' if name == 'missing_verifier' else 'bash /tests/verify.sh')
+        if name == 'setup_failure':
+            command = 'rm config/application.rb && ' + command
         if candidate != original:
             command = 'git apply /candidate.patch && ' + command
         result = subprocess.run([
@@ -59,12 +66,16 @@ with tempfile.TemporaryDirectory(prefix='team-ticket-validation-') as staging:
         checks_file = logdir / 'checks.json'
         checks = json.loads(checks_file.read_text())['checks'] if checks_file.exists() else {}
         summary[name] = {'exit_code': result.returncode, 'checks': checks}
-        expected = 0 if name == 'reference' else 1
+        expected = 2 if name in ('setup_failure', 'missing_verifier') else (0 if name == 'reference' else 1)
         print(f'{name}: exit {result.returncode}, expected {expected}', flush=True)
-        if result.returncode != expected or not checks:
+        if result.returncode != expected or (name not in ('runtime_error', 'application_load_error', 'setup_failure', 'missing_verifier') and not checks):
             raise SystemExit(f'Unexpected result; inspect {logdir}')
+        if name == 'hidden_runtime_error' and 'error' not in checks.values():
+            raise SystemExit('Hidden runtime mutation did not exercise error checks')
+        if name == 'runtime_error' and 'errors' not in (logdir / 'baseline.log').read_text():
+            raise SystemExit('Runtime mutation did not execute baseline tests')
         if name == 'reference' and any(value != 'pass' for value in checks.values()):
             raise SystemExit('Reference did not report all checks passing')
 OUT.mkdir(parents=True, exist_ok=True)
 (OUT / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
-print(f'All eight validation cases behaved as expected. Evidence: {OUT}')
+print(f'All thirteen validation cases behaved as expected. Evidence: {OUT}')
