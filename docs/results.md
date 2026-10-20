@@ -2,35 +2,43 @@
 
 ## Current checkpoint
 
-Two official model attempts completed on 2026-10-20. The planned three-task
-baseline remains incomplete; no training run has occurred.
+All three planned official model attempts finished on 2026-10-20, with one
+fresh attempt per task. No training run has occurred.
 
 | Official task | Outcome / agent status | Reward | Credit | Steps | Wall seconds |
 | --- | --- | --- | --- | --- | --- |
 | `at-announce-once` | Completed / submitted | 0.0 | 0.0 | 30 | 1399.1 |
 | `at-compact-positions` | Completed / submitted | 1.0 | 0.10 | 19 | 544.6 |
-| `at-tenant-isolation` | Running after disk recovery | — | — | — | — |
+| `at-tenant-isolation` | Agent timeout / time_limit, no submission | 0.0 | 0.0 | 32 | 1925.5 |
 
-Among the two scored attempts, one solved (50%), mean reward 0.50 and mean
-credit 0.05; zero infrastructure failures. These are interim results for two
-tasks, not a completed three-task baseline or full-benchmark estimate.
-Both agents explicitly submitted with empty submission bodies.
+Among all three scored attempts, one solved (33.3%), mean reward 0.3333 and mean
+credit 0.0333; zero infrastructure failures. The timeout is scored by the
+unchanged official harness and remains in the denominator. This small declared
+subset is not a full-benchmark estimate or a variance estimate. The first two
+agents explicitly submitted with empty submission bodies; the third did not.
 
 Inference ran offline on the Mac GPU through MLX, with Docker executing the
-official Rails tasks. Both runs used clean source
-`88ecc36c0d4fb7a2fab46956d4c21cf86c48110c`, the pinned benchmark/model,
-lemans 1.5.2 and all settings in the
+official Rails tasks. The first two runs used clean source
+`88ecc36c0d4fb7a2fab46956d4c21cf86c48110c`; the third used clean source
+`b9cc9271e7192d42ac3616ec4eaafdea2b890473` (only result documentation changed).
+All used the same pinned benchmark/model, lemans 1.5.2 and all settings in the
 [frozen protocol](local-baseline-protocol-2026-10-20.md). No hints, repairs,
-hidden feedback or configuration changes were supplied during either attempt.
+hidden feedback or configuration changes were supplied during any attempt.
 
 | Evidence directory | Trial | Input / output tokens | Generation seconds | Peak unified GiB | Generated / consumed | Truncated |
 | --- | --- | --- | --- | --- | --- | --- |
 | `runs/local-evaluation-YyMIWG` | `at-announce-once__DrQJNzh` | 188916 / 5580 | 1360.33 | 4.037 | 30 / 30 | 1 |
 | `runs/local-evaluation-W05Vqm` | `at-compact-positions__DQk0bSB` | 73718 / 1848 | 511.49 | 3.569 | 19 / 19 | 0 |
+| `runs/local-evaluation-Pi1SXX` | `at-tenant-isolation__LOVpl49` | 242008 / 1738 | 1870.90 | 4.034 | 32 / 32 | 0 |
 
-Neither run had pending, expired, late or runtime-error responses. Each directory
+No run had pending, expired, late or runtime-error responses. Each directory
 retains `summary.json`, frozen input/model hashes, runtime/source records,
 the original patch, trajectory and unchanged harness/verifier outputs.
+All 780 frozen input hashes per attempt were verified after execution, and
+all three 11-file model manifests match. In total, 81 responses were generated
+and consumed, using 504642 input / 9166 output tokens. Total generation time
+was 3742.72 seconds and harness wall time was 3869.2 seconds. Peak unified
+allocation across the subset was 4.037 GiB; one response was truncated.
 
 The announcement patch misused Rails' saved-change array as a hash, producing
 six errors in the restored existing suite (179 runs, 529 assertions, two skips).
@@ -45,6 +53,18 @@ The harness awarded reward 1.0 but only credit 0.10: the patch did not use the
 target Rails quoting API. Preserve this distinction rather than reporting full
 credit for the task.
 
+Tenant isolation ended with harness outcome `agent_timeout`, scored true,
+agent status `time_limit`, null submission and an empty repository patch.
+The model explored the application and drafted migration files under `/tmp`
+without implementing them in the repository. Existing tests remained green
+(179 runs, 553 assertions, two skips), while official verification reported
+11 runs, zero assertions and 11 errors because the required tenants table was
+absent. The official harness awarded reward/credit 0.0; the errors are retained
+as a scored task failure, not reclassified or regraded. The configured agent
+limit was 30 minutes; actual agent phase was 1886.06 seconds and total harness
+duration 1925.5 seconds. Preserve the measured overrun without claiming an exact
+1800-second wall-time cutoff.
+
 Free disk space was 3.9 GiB before launch, 2.8 GiB after the first task and
 1.1 GiB after the second. Further model launches stopped under the protocol's
 resource rule. The cause of the disk-space decrease has not been established.
@@ -57,13 +77,16 @@ from the working tree and restored free space to 9.8 GiB. The pinned checkout
 remains clean; our own run evidence is untouched. This identifies reclaimable
 space, not the cause of the earlier disk-space decrease.
 
-The remaining task launched once with unchanged settings and clean source
-`b9cc927`, in `runs/local-evaluation-Pi1SXX`, trial
-`at-tenant-isolation__LOVpl49`. It is monitored by the detached
-`bin/watch-local-evaluation` observer; no result is claimed yet. The observer
-does not change the frozen run. A bounded event-delivery heartbeat will record
-completion or a failure without repeated in-context polling. Do not rerun the
-two completed attempts to improve the score.
+The remaining task then launched once with unchanged settings. The detached
+observer emitted its finished event at 18:52:39 UTC. A one-time notifier queued
+a message to this existing chat through `codex queue` at 18:52:59 UTC; this chat
+received it and recorded the result above. The scheduled heartbeat is paused.
+The observer and notifier did not alter the frozen attempt. Delivery evidence
+and acknowledgement are retained in the run's `monitor/` directory.
+
+The declared baseline is now complete. Preserve these first-attempt results;
+do not rerun them to select a better score. A future evaluation or training
+phase requires a separately declared scope and keeps this baseline unchanged.
 
 ## Earlier development evidence
 
