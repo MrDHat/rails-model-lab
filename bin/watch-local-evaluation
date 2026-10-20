@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Observe one existing lemans run; emit one durable event without model intervention."""
+import argparse
+from datetime import datetime, timezone
+import fcntl
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import time
+
+
+def inspect_run(root, alive, free_bytes, now):
+    results = list((root / "trials").rglob("result.json"))
+    if len(results) > 1:
+        raise ValueError("Expected exactly one trial")
+    if results:
+        result = json.loads(results[0].read_text())
+        if type(result["outcome"]["scored"]) is not bool:
+            raise ValueError("Invalid harness outcome")
+        return {"kind": "finished", "result_file": str(results[0]),
+                "outcome": result["outcome"], "reward": result.get("reward"),
+                "credit": result.get("credit"), "trial": result["trial"]}
+    if not alive:
+        return {"kind": "process_exited", "reason": "Harness exited without result.json"}
+    if free_bytes < 2**30:
+        return {"kind": "low_disk", "free_bytes": free_bytes}
+    files = list((root / "relay").glob("*.json"))
+    files += [p for p in (root / "worker.log", root / "runtime.json") if p.exists()]
+    if now - max((p.stat().st_mtime for p in files), default=root.stat().st_mtime) > 720:
+        return {"kind": "stalled", "reason": "No transport progress for 12 minutes"}
+    requests = list((root / "relay").glob("*.request.json"))
+    if requests:
+        started = min(datetime.fromisoformat(json.loads(p.read_text())["created_at"]).timestamp()
+                      for p in requests)
+        if now - started > 2400:
+            return {"kind": "overdue", "reason": "No harness result after 40 minutes"}
+    return None
+
+
+def write_json(path, value):
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(value, indent=2) + "\n")
+    temporary.replace(path)
+
+
+def watch(root, pid):
+    directory = root / "monitor"
+    directory.mkdir(exist_ok=True)
+    with (directory / "lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # A terminal event is immutable. A restart cannot silently acknowledge it.
+        if (directory / "event.json").exists():
+            return
+        write_json(directory / "state.json", {"pid": os.getpid(), "harness_pid": pid,
+                   "run": str(root), "started_at": datetime.now(timezone.utc).isoformat()})
+        while True:
+            try:
+                process = subprocess.run(["ps", "-p", str(pid), "-o", "command="],
+                                         capture_output=True, text=True, timeout=10)
+                if process.returncode not in (0, 1):
+                    raise RuntimeError("Could not inspect harness process")
+                alive = (process.returncode == 0 and "lemans run" in process.stdout
+                         and str(root / "trials") in process.stdout)
+                event = inspect_run(root, alive, shutil.disk_usage(root).free, time.time())
+            except Exception as error:
+                event = {"kind": "monitor_error", "reason": str(error)}
+            if event:
+                event.update(run=str(root), observed_at=datetime.now(timezone.utc).isoformat())
+                write_json(directory / "event.json", event)
+                print(json.dumps(event), flush=True)
+                return
+            time.sleep(30)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("run", type=Path)
+    parser.add_argument("harness_pid", type=int)
+    args = parser.parse_args()
+    root = args.run.resolve()
+    if not (root / "evaluation-inputs.json").is_file() or args.harness_pid <= 1:
+        parser.error("Expected an existing frozen run and a harness PID")
+    watch(root, args.harness_pid)

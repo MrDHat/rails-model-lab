@@ -68,6 +68,19 @@ python3 experiments/test-local-report.py
 These checks need no model or Docker. Official oracle/nop controls above use
 Docker and no model. Raw run artifacts remain under ignored `runs/`.
 
+For an already-running attempt, `python3 bin/watch-local-evaluation RUN HARNESS_PID`
+observes the existing lemans process every 30 seconds. Run it in a detached
+process to survive chat interruptions. It writes one atomic `monitor/event.json`
+on a harness result, process exit without a result, disk below 1 GiB, 12 minutes
+without transport progress, or 40 minutes without a result. Monitor errors also
+produce an event. It never edits, kills, restarts or regrades an attempt.
+`monitor/state.json` records its PID; a file lock prevents duplicate observers.
+The script alone cannot wake this chat. A bounded app heartbeat checks the event
+every five minutes, remains quiet while healthy, and acknowledges the event
+after recording results or handling a failure. Its delivery ends after 18 checks
+or pauses after handling an event; the supervisor itself exits after one event.
+Check the observer logic with `python3 experiments/test-local-watch.py`.
+
 The obsolete Colab automation, custom development tasks and their validators
 are removed from the active route. Their exact code and detailed experiment
 history remain on the preserved branches referenced by [results](docs/results.md).
