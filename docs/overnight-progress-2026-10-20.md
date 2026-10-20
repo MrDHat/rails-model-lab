@@ -148,3 +148,24 @@ progress on the already authorized expense runtime. It contains no task or
 grader content and cannot establish a task score. Its result will determine
 whether a future separately recorded expense protocol can reach the fixed
 step limit without hitting the smaller context guard.
+
+## Final observed checkpoint
+
+The synthetic 16K-input / 2K-output diagnostic passed. The fresh Colab attempt
+consumed 16 generations without a DOM fallback, then disconnected and timed
+out unscored. Reconnect approval remains pending after automatic approval review
+rejected the possible loss of executing notebook/model state.
+
+PR #14 adds a separately pinned offline MLX community 4-bit variant. Its short
+smoke, native-tool parser and Ruby provider-consumption checks passed. A fresh
+team-ticket attempt consumed all 22 generations locally, reached the time
+limit, and ended unscored because the model introduced an undefined exception
+class that the current verifier classified as infrastructure failure. This
+requires a future grading-policy fix and broken-app mutation coverage; the
+original attempt must remain unscored.
+
+The [complete result record](qwen-local-results-2026-10-20.md) preserves exact
+usage, outcomes and next steps. No official model tasks or training runs were
+launched. The three-task prospective protocol is committed for later work.
+The active autonomous goal reports `usageLimited`; further evaluations stopped
+after observing that limit. All checkpoint PRs remain unmerged.

@@ -18,6 +18,8 @@ been completed. Current inference settings are pinned in the
 | [Chunked-prefill pilot](docs/qwen-chunked-pilot-2026-10-19.md) | Two truncated responses then input guard; unscored |
 | [Larger-budget pilot](docs/qwen-budget-pilot-2026-10-19.md) | No truncation, but relay deadline missed; unscored |
 | [Recovered-relay pilot](docs/qwen-relay-attempt-2026-10-20.md) | 30 consumed generations; repeated faulty edits then input guard; unscored, no submission |
+| [16K-context Colab attempt](docs/qwen-local-results-2026-10-20.md) | 16 consumed generations without fallback, then disconnection and timeout; unscored |
+| [Local quantized team-ticket attempt](docs/qwen-local-results-2026-10-20.md) | 22 consumed generations, time limit, then verifier error on broken model code; unscored |
 
 The recovered attempt needed 12 recorded DOM delivery fallbacks. The subsequent
 output-text relay correction passed a fresh short live probe and local
@@ -25,15 +27,15 @@ regression checks; a full task completion with that correction remains to be
 validated. Short probes and synthetic allocation checks are not task scores.
 See the [overnight progress record](docs/overnight-progress-2026-10-20.md).
 
-Next: evaluate the independent team-ticket task with the same fixed budgets.
-Sending its visible prompt, starter, and command output to Colab is awaiting
-explicit approval; its grader and reference stay outside inference requests.
+Next: validate grading for broken application code before a fresh team-ticket
+attempt. Sending its visible prompt, starter, and command output to Colab is
+awaiting explicit approval; its grader and reference stay outside inference requests.
 
 A separate [local MLX variant](docs/local-mlx-2026-10-20.md) passed non-task
 generation, tool-parser and provider-consumption checks on the Mac. Its pinned
 community 4-bit weights have an unknown upstream base commit, so its future
-results must be reported separately from Colab float16. A local team-ticket
-attempt keeps all task data on the Mac and requires no Colab transfer.
+results are reported separately from Colab float16. Its team-ticket attempt
+kept all task data on the Mac and required no Colab transfer.
 
 ## Development evaluations
 
@@ -55,7 +57,9 @@ A second independent task covers [team ticket data boundaries](evals/development
 using a separate starter app. Its [validation](docs/team-ticket-validation-2026-10-20.md)
 passed oracle/nop and six incomplete-fix checks. It tests scoped lists,
 cross-team reads/edits, and immutable ownership through the existing API.
-No model has attempted it.
+The first local quantized model attempt ended unscored: the patch introduced an
+undefined exception class and exposed the grader's test-error classification.
+See the [attempt record](docs/qwen-local-results-2026-10-20.md).
 The grader and reference fixtures are included for repository review. They
 remain outside the model's starter workspace and inference requests.
 
