@@ -2,7 +2,60 @@
 
 ## Current checkpoint
 
-No official model baseline or training run has completed. Official no-model
+Two official model attempts completed on 2026-10-20. The planned three-task
+baseline remains incomplete; no training run has occurred.
+
+| Official task | Outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| `at-announce-once` | Completed / submitted | 0.0 | 0.0 | 30 | 1399.1 |
+| `at-compact-positions` | Completed / submitted | 1.0 | 0.10 | 19 | 544.6 |
+| `at-tenant-isolation` | Not run: low free disk space | — | — | — | — |
+
+Among the two scored attempts, one solved (50%), mean reward 0.50 and mean
+credit 0.05; zero infrastructure failures. These are interim results for two
+tasks, not a completed three-task baseline or full-benchmark estimate.
+Both agents explicitly submitted with empty submission bodies.
+
+Inference ran offline on the Mac GPU through MLX, with Docker executing the
+official Rails tasks. Both runs used clean source
+`88ecc36c0d4fb7a2fab46956d4c21cf86c48110c`, the pinned benchmark/model,
+lemans 1.5.2 and all settings in the
+[frozen protocol](local-baseline-protocol-2026-10-20.md). No hints, repairs,
+hidden feedback or configuration changes were supplied during either attempt.
+
+| Evidence directory | Trial | Input / output tokens | Generation seconds | Peak unified GiB | Generated / consumed | Truncated |
+| --- | --- | --- | --- | --- | --- | --- |
+| `runs/local-evaluation-YyMIWG` | `at-announce-once__DrQJNzh` | 188916 / 5580 | 1360.33 | 4.037 | 30 / 30 | 1 |
+| `runs/local-evaluation-W05Vqm` | `at-compact-positions__DQk0bSB` | 73718 / 1848 | 511.49 | 3.569 | 19 / 19 | 0 |
+
+Neither run had pending, expired, late or runtime-error responses. Each directory
+retains `summary.json`, frozen input/model hashes, runtime/source records,
+the original patch, trajectory and unchanged harness/verifier outputs.
+
+The announcement patch misused Rails' saved-change array as a hash, producing
+six errors in the restored existing suite (179 runs, 529 assertions, two skips).
+It received reward zero from the official verifier; this was a model failure,
+not an infrastructure failure.
+
+The compaction patch corrected a SQL column-name typo. Existing tests completed
+with 179 runs, 553 assertions, zero failures/errors and two skips. The official
+verification summary reported seven runs, nine assertions and zero failures/errors.
+The verifier also printed a skipped-test notice; retain its raw output as written.
+The harness awarded reward 1.0 but only credit 0.10: the patch did not use the
+target Rails quoting API. Preserve this distinction rather than reporting full
+credit for the task.
+
+Free disk space was 3.9 GiB before launch, 2.8 GiB after the first task and
+1.1 GiB after the second. Further model launches stopped under the protocol's
+resource rule. The cause of the disk-space decrease has not been established.
+No caches, run evidence or unrelated files were deleted.
+Next: recover sufficient disk headroom, then run the remaining tenant-isolation
+task once with the unchanged settings. Do not rerun the two completed attempts
+to improve the score.
+
+## Earlier development evidence
+
+Official no-model
 controls passed on `at-announce-once`, `at-compact-positions` and
 `at-tenant-isolation`: each oracle/nop pair completed at 1.0/0.0 with zero model
 tokens. Evidence: `runs/benchmark-validation-7HzR6h` and the original validation
@@ -35,7 +88,8 @@ The development graders are retired with their tasks; no official grader changes
 
 This one development pass establishes a working local route, not broad model
 quality or training improvement. Previous unscored attempts retain their original
-outcomes. Next is the [official subset protocol](local-baseline-protocol-2026-10-20.md).
+outcomes. The official subset above follows the
+[frozen protocol](local-baseline-protocol-2026-10-20.md).
 
 ## Preserved experiment history
 
