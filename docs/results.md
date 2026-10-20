@@ -61,8 +61,9 @@ The remaining task launched once with unchanged settings and clean source
 `b9cc927`, in `runs/local-evaluation-Pi1SXX`, trial
 `at-tenant-isolation__LOVpl49`. It is monitored by the detached
 `bin/watch-local-evaluation` observer; no result is claimed yet. The observer
-does not change the frozen run. A bounded event-delivery heartbeat will record
-completion or a failure without repeated in-context polling. Do not rerun the
+does not change the frozen run. Direct delivery through `codex queue` replaces
+the paused event-delivery heartbeat: plain Python waits for the event and queues
+one message to this existing chat. No model turns run while waiting. Do not rerun the
 two completed attempts to improve the score.
 
 ## Earlier development evidence

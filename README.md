@@ -75,11 +75,16 @@ on a harness result, process exit without a result, disk below 1 GiB, 12 minutes
 without transport progress, or 40 minutes without a result. Monitor errors also
 produce an event. It never edits, kills, restarts or regrades an attempt.
 `monitor/state.json` records its PID; a file lock prevents duplicate observers.
-The script alone cannot wake this chat. A bounded app heartbeat checks the event
-every five minutes, remains quiet while healthy, and acknowledges the event
-after recording results or handling a failure. Its delivery ends after 18 checks
-or pauses after handling an event; the supervisor itself exits after one event.
-Check the observer logic with `python3 experiments/test-local-watch.py`.
+For direct chat delivery, run `python3 bin/notify-local-evaluation RUN THREAD_UUID`
+in a detached process alongside the observer. It waits for the event using only
+local Python, then invokes `codex queue --thread ... --message ...` once. No
+scheduled model turns are needed. `monitor/delivery.json` records the attempt
+and outcome; ambiguous deliveries never auto-retry. The receiving chat writes
+`monitor/ack.json` after handling the event. The previous scheduled heartbeat
+is paused. The observer exits after one event and the notifier exits after
+delivery (or after 90 minutes without an event). They never rerun the benchmark.
+Check with `python3 experiments/test-local-watch.py` and
+`python3 experiments/test-local-notify.py`.
 
 The obsolete Colab automation, custom development tasks and their validators
 are removed from the active route. Their exact code and detailed experiment

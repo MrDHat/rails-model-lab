@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""Deliver one observer event directly to an existing Codex chat; no scheduled agent turns."""
+import argparse
+from datetime import datetime, timezone
+import fcntl
+import json
+from pathlib import Path
+import runpy
+import shutil
+import subprocess
+import time
+import uuid
+
+write_json = runpy.run_path(str(Path(__file__).with_name("watch-local-evaluation")))["write_json"]
+
+
+def notify(directory, thread, codex):
+    receipt = directory / "delivery.json"
+    if receipt.exists() or (directory / "ack.json").exists():
+        return
+    event = directory / "event.json"
+    message = (
+        f"The user-authorized local benchmark observer needs action. Read {event} first, "
+        "then check goal usage limits and the original harness artifacts. If finished, "
+        "preserve the exact scored/unscored outcome and credit, generate the report, verify "
+        "frozen inputs, update README/docs/results.md for all three attempts, and create a "
+        "reviewable checkpoint PR. For a failure event, diagnose it without killing or "
+        "restarting the benchmark. Do not launch more attempts, give hints, train, merge, "
+        "buy services or expand access. Hidden evaluation material and raw run evidence "
+        "stay local and out of model inputs/training. Write monitor/ack.json after handling "
+        "the event. No scheduled polling is needed."
+    )
+    # Persist before invoking: a timeout/crash is ambiguous, so never auto-resend.
+    record = {"thread": thread, "event": str(event), "status": "attempting",
+              "attempted_at": datetime.now(timezone.utc).isoformat()}
+    write_json(receipt, record)
+    try:
+        result = subprocess.run([codex, "queue", "--thread", thread, "--message", message],
+                                capture_output=True, text=True, timeout=30)
+        record.update(status="queued" if result.returncode == 0 else "failed",
+                      returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
+    except Exception as error:
+        record.update(status="uncertain", error=str(error))
+    write_json(receipt, record)
+    print(json.dumps(record), flush=True)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("run", type=Path)
+    parser.add_argument("thread", type=uuid.UUID)
+    args = parser.parse_args()
+    directory = args.run.resolve() / "monitor"
+    codex = shutil.which("codex")
+    if not (directory / "state.json").is_file() or not codex:
+        parser.error("Expected an existing observer and the Codex CLI")
+    with (directory / "delivery.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        deadline = time.monotonic() + 5400
+        while not (directory / "event.json").exists():
+            if time.monotonic() >= deadline:
+                raise SystemExit("Observer produced no event within 90 minutes; inspect its log")
+            time.sleep(30)
+        notify(directory, str(args.thread), codex)
