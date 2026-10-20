@@ -169,3 +169,18 @@ usage, outcomes and next steps. No official model tasks or training runs were
 launched. The three-task prospective protocol is committed for later work.
 The active autonomous goal reports `usageLimited`; further evaluations stopped
 after observing that limit. All checkpoint PRs remain unmerged.
+
+## Resumed daytime checkpoint
+
+The user resumed work. The old goal was absent when checked; no usage-limited
+goal was bypassed. PR #16 fixes development grading for completed application
+test errors, validated with 23 mutation cases and real harness controls.
+PR #17 preserves a fresh host-sleep-interrupted attempt and adds a scoped
+idle-sleep assertion. A subsequent fresh local attempt submitted at step 24
+and scored 1.0, passing all 18 hidden tests. See the
+[complete result](local-completion-2026-10-20.md).
+
+The user questioned the amount of infrastructure work. Keep scope narrow:
+reuse lemans/miniswen and official graders, stop adding development tasks or
+infrastructure features, and run the frozen official subset next. No official
+model task or training run has started. All checkpoint PRs remain unmerged.

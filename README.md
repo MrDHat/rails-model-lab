@@ -6,8 +6,9 @@ Agents on Rails benchmark before and after training.
 The imported chat is background, not a finalized experiment specification. The model,
 GPU host, training method, and budget remain provisional.
 
-Qwen3.5-4B runs on the existing Colab T4, but an explicit end-to-end coding
-submission is still unresolved. No official model baseline or training run has
+The local quantized Qwen3.5-4B variant completed a development task with an
+explicit submission and reward 1.0 (18 hidden tests passed). Colab task
+completion remains unresolved. No official model baseline or training run has
 been completed. Current inference settings are pinned in the
 [workflow](experiments/README.md).
 
@@ -20,6 +21,8 @@ been completed. Current inference settings are pinned in the
 | [Recovered-relay pilot](docs/qwen-relay-attempt-2026-10-20.md) | 30 consumed generations; repeated faulty edits then input guard; unscored, no submission |
 | [16K-context Colab attempt](docs/qwen-local-results-2026-10-20.md) | 16 consumed generations without fallback, then disconnection and timeout; unscored |
 | [Local quantized team-ticket attempt](docs/qwen-local-results-2026-10-20.md) | 22 consumed generations, time limit, then verifier error on broken model code; unscored |
+| [Fresh local attempt interrupted by sleep](docs/local-sleep-interruption-2026-10-20.md) | Six consumed generations, host sleep across deadline; unscored |
+| [Completed local team-ticket attempt](docs/local-completion-2026-10-20.md) | 24 consumed generations, explicit submission, reward 1.0; 18 hidden tests passed |
 
 The recovered attempt needed 12 recorded DOM delivery fallbacks. The subsequent
 output-text relay correction passed a fresh short live probe and local
@@ -27,13 +30,14 @@ regression checks; a full task completion with that correction remains to be
 validated. Short probes and synthetic allocation checks are not task scores.
 See the [overnight progress record](docs/overnight-progress-2026-10-20.md).
 
-Next: validate grading for broken application code before a fresh team-ticket
-attempt. Sending its visible prompt, starter, and command output to Colab is
-awaiting explicit approval; its grader and reference stay outside inference requests.
+Next: run the [frozen three-task official baseline](docs/local-baseline-protocol-2026-10-20.md)
+through the existing lemans harness and local inference adapter. Development
+grading is now [validated for application exceptions](docs/development-grader-policy-2026-10-20.md).
+No further development tasks or infrastructure features are planned unless a concrete failure blocks evaluation.
 
 A separate [local MLX variant](docs/local-mlx-2026-10-20.md) passed non-task
 generation, tool-parser and provider-consumption checks on the Mac. Its pinned
-community 4-bit weights have an unknown upstream base commit, so its future
+community 4-bit weights have an unknown upstream base commit, so its
 results are reported separately from Colab float16. Its team-ticket attempt
 kept all task data on the Mac and required no Colab transfer.
 
@@ -59,7 +63,9 @@ passed oracle/nop and six incomplete-fix checks. It tests scoped lists,
 cross-team reads/edits, and immutable ownership through the existing API.
 The first local quantized model attempt ended unscored: the patch introduced an
 undefined exception class and exposed the grader's test-error classification.
-See the [attempt record](docs/qwen-local-results-2026-10-20.md).
+See the [original attempt record](docs/qwen-local-results-2026-10-20.md). After the
+grading fix, a [fresh attempt](docs/local-completion-2026-10-20.md) submitted and
+passed all 18 hidden tests.
 The grader and reference fixtures are included for repository review. They
 remain outside the model's starter workspace and inference requests.
 
