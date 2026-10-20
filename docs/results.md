@@ -77,6 +77,14 @@ from the working tree and restored free space to 9.8 GiB. The pinned checkout
 remains clean; our own run evidence is untouched. This identifies reclaimable
 space, not the cause of the earlier disk-space decrease.
 
+The remaining task launched once with unchanged settings and clean source
+`b9cc927`, in `runs/local-evaluation-Pi1SXX`, trial
+`at-tenant-isolation__LOVpl49`. It is monitored by the detached
+`bin/watch-local-evaluation` observer; no result is claimed yet. The observer
+does not change the frozen run. Direct delivery through `codex queue` replaces
+the paused event-delivery heartbeat: plain Python waits for the event and queues
+one message to this existing chat. No model turns run while waiting. Do not rerun the
+two completed attempts to improve the score.
 The remaining task then launched once with unchanged settings. The detached
 observer emitted its finished event at 18:52:39 UTC. A one-time notifier queued
 a message to this existing chat through `codex queue` at 18:52:59 UTC; this chat
