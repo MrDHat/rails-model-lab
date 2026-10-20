@@ -125,3 +125,26 @@ live probe passed the revised helper/provider path without a fallback. The
 pending reload request proved unnecessary: work continued without reloading
 or changing account/cookie security settings. The next measured run will use
 the independent team-ticket task with the same model and budgets.
+
+## Further local validation while Colab scope approval is pending
+
+Automatic approval review rejected the team-ticket model run because the
+explicit Colab authorization covered only expense-claim content. A separate
+approval request for its visible prompt, starter and command/test output is
+pending; grader/reference/mutation fixtures remain excluded from inference.
+No team-ticket model run was started.
+
+Local oracle/nop validation completed on two additional official tasks:
+compact positions and tenant isolation. All four runs completed at expected
+1.0/0.0 rewards with zero model tokens. This brings cumulative official harness
+validation to three tasks, not an official model baseline. The
+[validation record](benchmark-validation-2026-10-20.md) preserves exact trials,
+scope and evidence. The script now accepts explicit task lists and records a
+fresh scope per invocation. The report exposes DOM fallback evidence directly;
+nine report fixtures pass. README now summarizes the latest outcomes clearly.
+
+A separate synthetic 16,384-input / 2,048-output allocation diagnostic is in
+progress on the already authorized expense runtime. It contains no task or
+grader content and cannot establish a task score. Its result will determine
+whether a future separately recorded expense protocol can reach the fixed
+step limit without hitting the smaller context guard.

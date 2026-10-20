@@ -69,11 +69,25 @@ def summarize(root):
                            ("model", "revision", "attention", "prefill_chunk_size", "eos_token_id",
                             "input_token_limit", "max_new_tokens")},
                           sort_keys=True) for item in successful}
+    events_path = root / "browser-relay-events.jsonl"
+    events = [json.loads(line) for line in events_path.read_text().splitlines() if line.strip()] \
+        if events_path.exists() else []
+    for event in events:
+        if event.get("id") is not None and event["id"] not in requests:
+            raise ValueError(f"Browser event without request: {event['id']}")
+    fallback_ids = [event["id"] for event in events
+                    if event.get("event") == "manual_dom_delivery"]
     return {
         "run": str(root), "requests": len(requests),
         "generated_responses": len(successful), "pending_requests": pending,
         "quarantined_late_responses": late, "expired_requests": expired,
         "runtime_errors": errors,
+        "browser_delivery": {
+            "events_available": events_path.exists(),
+            "recorded_response_writes": sum(event.get("event") == "response_written" for event in events),
+            "operator_dom_fallback_attempts": len(fallback_ids),
+            "operator_dom_fallback_request_ids": sorted(set(fallback_ids)),
+        },
         "generated_input_tokens": sum(item["usage"]["prompt_tokens"] for item in successful),
         "generated_output_tokens": sum(item["usage"]["completion_tokens"] for item in successful),
         "generated_seconds": round(sum(item["seconds"] for item in successful), 2),

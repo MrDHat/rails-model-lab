@@ -54,6 +54,23 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(result["pending_requests"], ["pending"])
         self.assertEqual(result["trials"], [])
         self.assertIsNone(result["peak_allocated_gpu_GiB"])
+        self.assertFalse(result["browser_delivery"]["events_available"])
+
+    def test_browser_assistance_is_explicit_and_orphan_events_fail(self):
+        self.request("assisted")
+        events = self.root / "browser-relay-events.jsonl"
+        events.write_text('\n'.join(json.dumps(event) for event in [
+            {"event": "manual_dom_delivery", "id": "assisted"},
+            {"event": "response_written", "id": "assisted"},
+        ]) + '\n')
+        self.assertEqual(summarize(self.root)["browser_delivery"], {
+            "events_available": True, "recorded_response_writes": 1,
+            "operator_dom_fallback_attempts": 1,
+            "operator_dom_fallback_request_ids": ["assisted"],
+        })
+        events.write_text(json.dumps({"event": "response_written", "id": "unrelated"}))
+        with self.assertRaisesRegex(ValueError, "Browser event without request"):
+            summarize(self.root)
 
     def test_misrouted_response_and_changed_setting_fail(self):
         self.request("request")

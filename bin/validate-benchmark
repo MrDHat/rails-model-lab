@@ -7,8 +7,45 @@ if [ -n "$(git -C vendor/ai-evals status --porcelain)" ]; then
   echo "Benchmark checkout has changes; inspect them before validation." >&2
   exit 1
 fi
-for agent in oracle nop; do
-  bundle exec lemans run --bench vendor/ai-evals --backend docker \
-    --task at-announce-once --agent "$agent" --attempts 1 --concurrency 1 \
-    --runs-dir "runs/validation-$agent"
+if [ "$#" -eq 0 ]; then
+  set -- at-announce-once
+fi
+for task in "$@"; do
+  if ! [[ "$task" =~ ^[a-z0-9-]+$ ]] || [ ! -d "vendor/ai-evals/tasks/$task" ]; then
+    echo "Unknown benchmark task: $task" >&2
+    exit 2
+  fi
+done
+mkdir -p runs
+run_root="$(mktemp -d "$PWD/runs/benchmark-validation-XXXXXX")"
+python3 - "$run_root" "$revision" "$@" <<'PYTHON'
+import json
+from pathlib import Path
+import sys
+root, revision, *tasks = sys.argv[1:]
+(Path(root) / 'scope.json').write_text(json.dumps({
+    'benchmark_revision': revision, 'tasks': tasks, 'agents': ['oracle', 'nop'],
+    'model_calls': False,
+}, indent=2) + '\n')
+PYTHON
+echo "Local no-model validation evidence: $run_root"
+for task in "$@"; do
+  for agent in oracle nop; do
+    bundle exec lemans run --bench vendor/ai-evals --backend docker \
+      --task "$task" --agent "$agent" --attempts 1 --concurrency 1 \
+      --runs-dir "$run_root/$task/$agent"
+    python3 - "$run_root/$task/$agent" "$agent" <<'PYTHON'
+import json
+from pathlib import Path
+import sys
+root, agent = sys.argv[1:]
+files = list(Path(root).rglob('result.json'))
+assert len(files) == 1, files
+result = json.loads(files[0].read_text())
+assert result['outcome']['name'] == 'completed', result
+assert result['reward'] == (1.0 if agent == 'oracle' else 0.0), result
+assert result['usage']['input_tokens'] == result['usage']['output_tokens'] == 0, result
+print(f"Validated {result['trial']}: {agent} completed at {result['reward']}")
+PYTHON
+  done
 done

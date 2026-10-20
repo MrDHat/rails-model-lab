@@ -6,33 +6,28 @@ Agents on Rails benchmark before and after training.
 The imported chat is background, not a finalized experiment specification. The model,
 GPU host, training method, and budget remain provisional.
 
-Qwen3.5-4B now passes a short Colab T4 inference smoke test. See the
-[runtime and result record](docs/qwen-colab-smoke-2026-10-19.md) and
-[reusable script](experiments/qwen-colab-smoke.py).
+Qwen3.5-4B runs on the existing Colab T4, but an explicit end-to-end coding
+submission is still unresolved. No official model baseline or training run has
+been completed. Current inference settings are pinned in the
+[workflow](experiments/README.md).
 
-The first unchanged-model development attempt scored **1.0**, passing all 27
-hidden tests, but reached its 12-turn limit before submitting. See the
-[pilot result and limits](docs/qwen-development-pilot-2026-10-19.md) and
-[interactive Colab workflow](experiments/README.md). This is one development
-task, not an official benchmark result.
+| Development attempt | Preserved outcome |
+| --- | --- |
+| [First 12-step pilot](docs/qwen-development-pilot-2026-10-19.md) | Reward 1.0 / all 27 hidden tests passed, but step limit and no submission |
+| [32-step eager pilot](docs/qwen-32-turn-pilot-2026-10-19.md) | GPU memory error; unscored |
+| [Chunked-prefill pilot](docs/qwen-chunked-pilot-2026-10-19.md) | Two truncated responses then input guard; unscored |
+| [Larger-budget pilot](docs/qwen-budget-pilot-2026-10-19.md) | No truncation, but relay deadline missed; unscored |
+| [Recovered-relay pilot](docs/qwen-relay-attempt-2026-10-20.md) | 30 consumed generations; repeated faulty edits then input guard; unscored, no submission |
 
-A fresh [32-turn follow-up](docs/qwen-32-turn-pilot-2026-10-19.md) hit a Colab
-GPU memory error on request 15 and is **unscored**. Longer-context runtime
-validation is required before another scored attempt.
-The [runtime diagnostics](docs/colab-runtime-diagnostics-2026-10-19.md) record
-explicit error propagation and a successful separate chunked-prefill probe on
-the previously failing request.
+The recovered attempt needed 12 recorded DOM delivery fallbacks. The subsequent
+output-text relay correction passed a fresh short live probe and local
+regression checks; a full task completion with that correction remains to be
+validated. Short probes and synthetic allocation checks are not task scores.
+See the [overnight progress record](docs/overnight-progress-2026-10-20.md).
 
-The [fresh chunked-prefill attempt](docs/qwen-chunked-pilot-2026-10-19.md)
-passed that memory failure point and the visible baseline, then exceeded its
-fixed context guard after two truncated outputs. It is also **unscored**, with
-no submission. Runtime errors now propagate to a preserved invalid trial.
-
-The [larger-budget validation](docs/qwen-budget-pilot-2026-10-19.md) passed a
-12,288-input / 2,048-output allocation probe and completed a previously
-truncated response. Its fresh attempt passed visible checks without truncation,
-then ended **unscored** when a response missed the local relay deadline.
-Explicit task submission and reliable transport remain unresolved.
+Next: evaluate the independent team-ticket task with the same fixed budgets.
+Sending its visible prompt, starter, and command output to Colab is awaiting
+explicit approval; its grader and reference stay outside inference requests.
 
 ## Development evaluations
 
@@ -65,9 +60,10 @@ python3 bin/validate-team-ticket-mutations
 
 ## First milestone: validate the evaluation environment
 
-**Completed on one task:** reference solution scored 1.0; unchanged app
-scored 0.0; both runs completed without model calls.
-See [the validation record](docs/validation-2026-10-18.md).
+**Completed on three official tasks:** reference solutions scored 1.0 and
+unchanged apps scored 0.0, with completed outcomes and zero model tokens.
+See the [original validation](docs/validation-2026-10-18.md) and
+[broader validation](docs/benchmark-validation-2026-10-20.md).
 
 Use the official tasks, graders, lemans harness, and (for model runs)
 miniswen agent. Training will use separate, independently authored material;
@@ -85,13 +81,16 @@ The setup script checks out the revision in `benchmark-revision.txt` and
 installs the harness version in `Gemfile.lock`. The benchmark lives under
 ignored `vendor/ai-evals`; sparse checkout excludes published run logs.
 
-Validation runs only the official `at-announce-once` task:
+Validation defaults to the official `at-announce-once` task. Pass task names to
+validate a different explicit scope: `bash bin/validate-benchmark at-compact-positions at-tenant-isolation`.
+Each invocation gets a fresh evidence directory with a recorded scope and checks
+completed outcomes and zero model usage:
 
 - `oracle` applies the supplied solution; expect full credit.
 - `nop` leaves the starting code alone; expect zero credit.
 
 Neither agent calls a model. Docker downloads and builds the Rails runtime.
-Results and verifier logs are written under ignored `runs/validation-*`.
+Results and verifier logs are written under ignored `runs/benchmark-validation-*`.
 Inspect result outcomes as well as scores: infrastructure errors are not
 model failures, and a successful command alone does not establish validity.
 
