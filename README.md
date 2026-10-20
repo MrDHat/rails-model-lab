@@ -29,6 +29,12 @@ Next: evaluate the independent team-ticket task with the same fixed budgets.
 Sending its visible prompt, starter, and command output to Colab is awaiting
 explicit approval; its grader and reference stay outside inference requests.
 
+A separate [local MLX variant](docs/local-mlx-2026-10-20.md) passed non-task
+generation, tool-parser and provider-consumption checks on the Mac. Its pinned
+community 4-bit weights have an unknown upstream base commit, so its future
+results must be reported separately from Colab float16. A local team-ticket
+attempt keeps all task data on the Mac and requires no Colab transfer.
+
 ## Development evaluations
 
 Our first independent task is runnable:

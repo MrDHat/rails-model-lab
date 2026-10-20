@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Separate local quantized variant. No Colab or hosted inference requests.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+bench="${1:-evals/development-team-tickets}"
+task="${2:-team-ticket-boundary}"
+model=mlx-community/Qwen3.5-4B-4bit
+revision=0e7ffd5c629ef7719d4cbc04069232580bfa9d9c
+runtime="$PWD/runs/mlx-runtime"
+python="$runtime/venv/bin/python"
+if [ ! -f "$bench/bench.yml" ] || [ ! -d "$bench/environment" ] || [ ! -d "$bench/tasks/$task" ]; then
+  echo "Usage: $0 [bench-directory [task-name]]" >&2
+  exit 2
+fi
+if [ ! -x "$python" ] || [ ! -f "$runtime/model-path.txt" ]; then
+  echo "Install the pinned local MLX runtime and download the pinned snapshot first" >&2
+  exit 2
+fi
+model_path="$(cat "$runtime/model-path.txt")"
+if [ "$(basename "$model_path")" != "$revision" ] || [ ! -f "$model_path/model.safetensors" ]; then
+  echo "Expected the pinned local model snapshot" >&2
+  exit 2
+fi
+bench="$(cd "$bench" && pwd)"
+run_root="$(mktemp -d "$PWD/runs/mlx-development-XXXXXX")"
+export COLAB_RELAY_DIR="$run_root/relay"
+export COLAB_MODEL_REVISION="$revision"
+export COLAB_STEP_LIMIT=32 COLAB_PREFILL_CHUNK_SIZE=1024
+export COLAB_INPUT_TOKEN_LIMIT=16384 COLAB_OUTPUT_TOKEN_LIMIT=2048
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_IMPLICIT_TOKEN=1
+export HF_HOME="$runtime/hf"
+mkdir -p "$run_root/bench" "$COLAB_RELAY_DIR"
+cp -R "$bench/environment" "$bench/tasks" "$run_root/bench/"
+bundle exec ruby -ryaml -e '
+  config = YAML.load_file(ARGV.fetch(1))
+  config["agent"] = {
+    "name" => "miniswen", "model" => "ollama/" + ARGV.fetch(2),
+    "timeout" => "30m", "step_limit" => 32, "exec_timeout" => 60,
+    "max_output_tokens" => 2048
+  }
+  File.write(ARGV.fetch(0), YAML.dump(config))
+' "$run_root/bench/bench.yml" "$bench/bench.yml" "$model"
+python3 - "$run_root" "$bench" "$task" "$model_path" <<'PYTHON'
+import hashlib,json,sys
+from pathlib import Path
+root,source,task,model_path=sys.argv[1:]
+root=Path(root)
+manifest={str(p.relative_to(root/'bench')):hashlib.sha256(p.read_bytes()).hexdigest()
+          for p in sorted((root/'bench').rglob('*')) if p.is_file()}
+(root/'evaluation-inputs.json').write_text(json.dumps({
+    'source_bench':source,'task':task,'sha256':manifest},indent=2)+'\n')
+# Record immutable downloaded bytes as well as the community repository revision.
+manifest={}
+for p in sorted(Path(model_path).iterdir()):
+    if p.is_file():
+        with p.open('rb') as stream:
+            manifest[p.name]=hashlib.file_digest(stream,'sha256').hexdigest()
+(root/'model-files.json').write_text(json.dumps(manifest,indent=2)+'\n')
+PYTHON
+git rev-parse HEAD > "$run_root/repository-revision.txt"
+git diff > "$run_root/working-tree.patch"
+cp bin/run-mlx-development experiments/colab-file-provider.rb experiments/colab-agent-inference.py \
+  experiments/mlx-file-worker.py Gemfile.lock "$runtime/requirements.lock" "$run_root/"
+echo "Local MLX evidence: $run_root"
+"$python" experiments/mlx-file-worker.py "$run_root" "$model_path" > "$run_root/worker.log" 2>&1 &
+worker_pid=$!
+cleanup() {
+  touch "$run_root/stop-worker"
+  kill "$worker_pid" 2>/dev/null || true
+  wait "$worker_pid" 2>/dev/null || true
+}
+trap cleanup EXIT
+bundle exec lemans run --require experiments/colab-file-provider.rb \
+  --bench "$run_root/bench" --backend docker --task "$task" \
+  --attempts 1 --concurrency 1 --runs-dir "$run_root/trials"

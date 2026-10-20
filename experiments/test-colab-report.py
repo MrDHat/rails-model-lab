@@ -56,6 +56,16 @@ class ReportTests(unittest.TestCase):
         self.assertIsNone(result["peak_allocated_gpu_GiB"])
         self.assertFalse(result["browser_delivery"]["events_available"])
 
+    def test_unified_memory_is_not_reported_as_cuda_allocation(self):
+        self.request("mlx")
+        self.response("mlx", backend="mlx", quantization_bits=4,
+                      peak_gpu_GiB=None, peak_unified_memory_GiB=2.81)
+        result = summarize(self.root)
+        self.assertIsNone(result["peak_allocated_gpu_GiB"])
+        self.assertEqual(result["peak_allocated_unified_memory_GiB"], 2.81)
+        self.assertEqual(result["observed_settings"][0]["backend"], "mlx")
+        self.assertEqual(result["observed_settings"][0]["quantization_bits"], 4)
+
     def test_browser_assistance_is_explicit_and_orphan_events_fail(self):
         self.request("assisted")
         events = self.root / "browser-relay-events.jsonl"
