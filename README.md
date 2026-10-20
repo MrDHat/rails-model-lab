@@ -5,11 +5,11 @@ before considering training. Use **lemans 1.5.2**, its **miniswen agent**, and t
 unchanged official tasks and graders. This repository adds a local inference
 adapter, a runner that freezes inputs, and an evidence report.
 
-The local community 4-bit Qwen variant completed two official task attempts:
-announcement reward 0.0, compaction reward 1.0 (credit 0.10). Both submitted;
-neither had an infrastructure failure. The third planned task has not run
-because free disk space fell to 1.1 GiB. No training run has occurred.
-See [results](docs/results.md).
+The three-task local community 4-bit Qwen baseline is finished: one solved out
+of three, with zero infrastructure failures. Announcement scored reward 0.0;
+compaction scored reward 1.0 (credit 0.10); tenant isolation timed out without
+submission and scored reward 0.0. Mean reward is 0.3333; mean credit is 0.0333.
+No training run has occurred. See [results](docs/results.md).
 
 ## Run the official baseline
 
