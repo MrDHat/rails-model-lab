@@ -9,7 +9,7 @@ baseline remains incomplete; no training run has occurred.
 | --- | --- | --- | --- | --- | --- |
 | `at-announce-once` | Completed / submitted | 0.0 | 0.0 | 30 | 1399.1 |
 | `at-compact-positions` | Completed / submitted | 1.0 | 0.10 | 19 | 544.6 |
-| `at-tenant-isolation` | Not run: low free disk space | — | — | — | — |
+| `at-tenant-isolation` | Running after disk recovery | — | — | — | — |
 
 Among the two scored attempts, one solved (50%), mean reward 0.50 and mean
 credit 0.05; zero infrastructure failures. These are interim results for two
@@ -49,9 +49,21 @@ Free disk space was 3.9 GiB before launch, 2.8 GiB after the first task and
 1.1 GiB after the second. Further model launches stopped under the protocol's
 resource rule. The cause of the disk-space decrease has not been established.
 No caches, run evidence or unrelated files were deleted.
-Next: recover sufficient disk headroom, then run the remaining tenant-isolation
-task once with the unchanged settings. Do not rerun the two completed attempts
-to improve the score.
+
+On continuation, the benchmark checkout contained 8 GiB of upstream example
+run logs outside the runner's inputs. Applying the setup script's intended
+sparse checkout (`tasks docker apps`) removed those recoverable upstream files
+from the working tree and restored free space to 9.8 GiB. The pinned checkout
+remains clean; our own run evidence is untouched. This identifies reclaimable
+space, not the cause of the earlier disk-space decrease.
+
+The remaining task launched once with unchanged settings and clean source
+`b9cc927`, in `runs/local-evaluation-Pi1SXX`, trial
+`at-tenant-isolation__LOVpl49`. It is monitored by the detached
+`bin/watch-local-evaluation` observer; no result is claimed yet. The observer
+does not change the frozen run. A bounded event-delivery heartbeat will record
+completion or a failure without repeated in-context polling. Do not rerun the
+two completed attempts to improve the score.
 
 ## Earlier development evidence
 
