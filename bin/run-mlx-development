@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Separate local quantized variant. No Colab or hosted inference requests.
 set -euo pipefail
+# Keep the host awake only for this process tree; this does not override lid sleep.
+if [ "$(uname -s)" = Darwin ] && [ "${MLX_AWAKE_WRAPPED:-0}" != 1 ]; then
+  exec /usr/bin/caffeinate -i env MLX_AWAKE_WRAPPED=1 bash "$0" "$@"
+fi
 cd "$(dirname "$0")/.."
 bench="${1:-evals/development-team-tickets}"
 task="${2:-team-ticket-boundary}"
