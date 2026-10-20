@@ -5,9 +5,11 @@ before considering training. Use **lemans 1.5.2**, its **miniswen agent**, and t
 unchanged official tasks and graders. This repository adds a local inference
 adapter, a runner that freezes inputs, and an evidence report.
 
-The local community 4-bit Qwen variant completed one development task with an
-explicit submission and reward 1.0: all 18 hidden tests passed. No official
-model baseline or training run has completed. See [results](docs/results.md).
+The local community 4-bit Qwen variant completed two official task attempts:
+announcement reward 0.0, compaction reward 1.0 (credit 0.10). Both submitted;
+neither had an infrastructure failure. The third planned task has not run
+because free disk space fell to 1.1 GiB. No training run has occurred.
+See [results](docs/results.md).
 
 ## Run the official baseline
 
