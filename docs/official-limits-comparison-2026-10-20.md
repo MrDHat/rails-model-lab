@@ -157,3 +157,20 @@ was killed or restarted, no task rerun, and no later task launched. The disk
 recovery does not restart the batch. No training is authorized. Further action
 requires reviewing capacity and the active attempt's eventual original result;
 this checkpoint does not authorize restarting the coordinator or new attempts.
+
+## Continuation authorization (2026-10-21)
+
+The user cleared space, attributed the temporary pressure to other work, and
+authorized continuation. Preflight found 8.0 GiB free and the original tenant
+isolation attempt still running. A one-off detached continuation adopts that
+attempt under its original deadline, waits for its harness and worker to exit,
+and preserves its original result. It does not restart or rerun any task.
+Only the sixteen unstarted tasks may launch afterward, under the same settings
+and controls; an unscored adopted result stops continuation for diagnosis.
+
+The original failure event, state and acknowledgment remain intact. Continuation
+events use a separate local monitor directory and the existing direct callback.
+The first three attempts retain source revision `e891e37`; subsequent attempts
+record this documentation checkpoint's revision. Runner/provider/worker and
+benchmark settings are unchanged. No held-out inspection or training is
+authorized. No scheduled model polling is used.
