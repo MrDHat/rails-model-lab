@@ -222,3 +222,18 @@ restarted, no model attempt rerun, and no later model attempt launched. No
 training ran or is authorized. A future continuation must explicitly select the
 existing Ruby/Bundler runtime and preserve the three completed attempts; this
 failure callback does not authorize a new launch or retry.
+
+## Remaining-task continuation authorization (2026-10-21)
+
+The user authorized continuing after the Ruby launcher diagnosis. The next
+one-off controller explicitly sets PATH to the existing Ruby 3.4.2/Bundler
+2.6.2 and pinned Python runtime for itself and all children. Version selection
+and `bundle check` passed before launch. Preflight found 15 GiB free.
+
+Carry forward the three completed model attempts unchanged. Start with
+archive-book-access controls, which previously failed to launch, then run
+only the sixteen unstarted model attempts. Preserve that earlier launcher
+failure evidence. All original limits, settings, isolation checks and stop
+conditions remain in effect. A separate `remaining-monitor` retains new
+events and delivers the existing direct chat callback. No scheduled polling,
+model retries, held-out result inspection or training is authorized.
