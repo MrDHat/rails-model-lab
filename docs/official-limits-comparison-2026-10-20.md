@@ -237,3 +237,12 @@ failure evidence. All original limits, settings, isolation checks and stop
 conditions remain in effect. A separate `remaining-monitor` retains new
 events and delivers the existing direct chat callback. No scheduled polling,
 model retries, held-out result inspection or training is authorized.
+
+Docker was also found stopped with a hung backend during readiness checks.
+Its VM and API were absent and no evaluation process was active. Graceful
+termination did not close the remaining backend, so that single backend was
+force-closed and the installed Docker app reopened. Docker 29.1.3 then passed
+its API readiness check. No attempt or live task container was interrupted.
+The pinned child PATH also includes Docker's existing `/usr/local/bin` path.
+Frozen benchmark cleanliness and 90m / 400 / 300 limits passed preflight before
+launch. No benchmark attempt was created by these service checks.
