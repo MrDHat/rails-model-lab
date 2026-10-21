@@ -11,6 +11,16 @@ compaction scored reward 1.0 (credit 0.10); tenant isolation timed out without
 submission and scored reward 0.0. Mean reward is 0.3333; mean credit is 0.0333.
 No training run has occurred. See [results](docs/results.md).
 
+## Full time and step allowance: interrupted
+
+The nineteen-task batch stopped new launches on 2026-10-21 after free disk
+fell below 1 GiB. Two development attempts completed: announcement scored
+reward 0.0 / credit 0.0 (format error); compaction scored reward 1.0 / credit
+0.10 (submitted). Tenant isolation remains active at the failure checkpoint;
+the other sixteen tasks, including all eight held-out tasks, have not run.
+This is an incomplete batch, not a full-benchmark result. See the
+[interruption record](docs/official-limits-comparison-2026-10-20.md#interruption-2026-10-21).
+
 ## Run the official baseline
 
 Requirements: Ruby 3.4+, Bundler, Docker, and the existing Apple Silicon MLX

@@ -1,6 +1,49 @@
 # Evaluation evidence and retained history
 
-## Current checkpoint
+## Interruption (2026-10-21)
+
+The coordinator emitted a failure at 19:51:20 UTC: free disk fell below
+1 GiB (1,010,380,800 bytes observed). It exited without killing its active
+child. A subsequent host check found only 145 MiB free; by 19:53:10 UTC this
+had recovered to 5.5 GiB. The transient capacity drop's cause is not established.
+macOS reported 12,473 MiB swap in use. The three run directories total about
+40 MiB; Docker reported 1.85 GB images, 1.683 GB build cache and an active
+11.27 MB container. These measurements do not establish which allocation
+caused the event. Nothing was deleted or pruned.
+
+| Development task | Harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error; three consecutive responses without a valid bash tool call; no submission | 0.0 | 0.0 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | active at diagnosis; no final score reported | pending | pending | pending | pending |
+
+These attempts used 90 minutes / 400 steps / 300 seconds per command with
+unchanged local token caps. Neither completed attempt exhausted the time or
+step allowance. Announcement had three output-length-truncated responses;
+compaction had none. No transport errors, expired, pending or late responses
+were present in either completed report. Controls passed for all three started
+tasks. Do not treat the incomplete batch as eleven development outcomes or a
+nineteen-task aggregate.
+
+The other eight development tasks and all eight held-out tasks remain not run.
+There are no new held-out evidence seals to verify. No held-out scores,
+trajectories, patches or verifier logs were inspected. Previous held-out results
+remain sealed and separate.
+
+Verification matched all 780 frozen input hashes per started run (2,340 checks),
+all eleven model-file hashes per run, empty recorded working-tree patches and
+source revision `e891e37f3c6dc27756211c06b73c02c2a319fdb5`. The existing report
+command regenerated both completed development summaries without regrading.
+Raw results and the verification record remain ignored and local.
+
+At diagnosis, the tenant-isolation harness and MLX worker were still running;
+the supervisor had exited. Its final outcome remains unresolved. No process
+was killed or restarted, no task rerun, and no later task launched. The disk
+recovery does not restart the batch. No training is authorized. Further action
+requires reviewing capacity and the active attempt's eventual original result;
+this checkpoint does not authorize restarting the coordinator or new attempts.
+
+## Earlier three-task checkpoint
 
 All three planned official model attempts finished on 2026-10-20, with one
 fresh attempt per task. No training run has occurred.
