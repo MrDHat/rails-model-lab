@@ -13,13 +13,14 @@ No training run has occurred. See [results](docs/results.md).
 
 ## Full time and step allowance: interrupted
 
-The nineteen-task batch stopped new launches on 2026-10-21 after free disk
-fell below 1 GiB. Two development attempts completed: announcement scored
-reward 0.0 / credit 0.0 (format error); compaction scored reward 1.0 / credit
-0.10 (submitted). Tenant isolation remains active at the failure checkpoint;
-the other sixteen tasks, including all eight held-out tasks, have not run.
-This is an incomplete batch, not a full-benchmark result. See the
-[interruption record](docs/official-limits-comparison-2026-10-20.md#interruption-2026-10-21).
+Three development attempts are complete: compaction passed (reward 1.0,
+credit 0.10), announcement scored 0.0 after a format error, and tenant isolation
+scored 0.0 after the 90-minute timeout (52 steps). The continuation then stopped
+before the fourth task's controls ran because its launcher selected macOS Ruby
+2.6 instead of the existing Ruby 3.4.2/Bundler 2.6.2 installation. The other
+sixteen model attempts, including all eight held-out tasks, remain not run.
+This is an incomplete batch. See the
+[continuation record](docs/official-limits-comparison-2026-10-20.md#continuation-stopped-before-the-fourth-model-attempt-2026-10-21).
 
 ## Run the official baseline
 

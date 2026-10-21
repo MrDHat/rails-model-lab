@@ -174,3 +174,51 @@ The first three attempts retain source revision `e891e37`; subsequent attempts
 record this documentation checkpoint's revision. Runner/provider/worker and
 benchmark settings are unchanged. No held-out inspection or training is
 authorized. No scheduled model polling is used.
+
+## Continuation stopped before the fourth model attempt (2026-10-21)
+
+The adopted tenant-isolation attempt finished with the original harness outcome
+`agent_timeout` (scored), reward 0.0 and credit 0.0, agent status `time_limit`,
+no submission, 52 steps and 5,449.6 wall seconds. Its agent phase lasted about
+90 minutes 31 seconds; cooperative deadline checks can overrun 90 minutes.
+All 52 responses were generated and consumed, with no pending, expired, late,
+truncated or transport-error responses. This is a scored timeout, not an
+unscored infrastructure failure. The original runner exit code is unavailable
+because its parent exited; it is not inferred from the result.
+
+| Development task | Original harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error, no submission | 0.0 | 0.0 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.0 | 52 | 5449.6 |
+
+At 21:36:21 Europe/Dublin (20:36:21 UTC), the continuation emitted a failure
+before the next task's controls could run. Its launch environment selected
+`/usr/bin/bundle` and macOS Ruby 2.6, which could not find Bundler 2.6.2. The
+correct existing installation is Ruby 3.4.2 under
+`/Users/mrdhat/.rbenv/versions/ruby-3.4.2/bin`, with Bundler 2.6.2 verified by
+version-only commands. The continuation launcher failed to pin that runtime.
+This is a launcher environment error, not an oracle failure or model result.
+The validation directory contains only its scope record and no harness result.
+No controls or attempts were retried while diagnosing it.
+
+Three model attempts are now complete and scored; one passed. The other eight
+development attempts and all eight held-out attempts remain not run. Do not
+report this partial prefix as a full-benchmark result. No held-out scores,
+patches, trajectories or verifier logs were inspected; no new held-out seals
+exist. Earlier restricted-budget results remain separate.
+
+Verification regenerated all three reports without grading, matched 2,340 frozen
+input hashes, checked three identical model manifests against all eleven current
+model files, and confirmed empty recorded working-tree patches and original
+source revision `e891e37f3c6dc27756211c06b73c02c2a319fdb5` for all three attempts.
+The continuation documentation revision is `0be6ffa`; it did not launch a model
+attempt. All inspected benchmark/controller PIDs had exited. Free space was
+3.7 GiB at diagnosis; disk pressure was not the reported failure this time.
+
+The original low-disk event and continuation event remain preserved locally,
+alongside raw reports and verification evidence. No process was killed or
+restarted, no model attempt rerun, and no later model attempt launched. No
+training ran or is authorized. A future continuation must explicitly select the
+existing Ruby/Bundler runtime and preserve the three completed attempts; this
+failure callback does not authorize a new launch or retry.
