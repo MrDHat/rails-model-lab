@@ -80,3 +80,12 @@ so an ambiguous failure is not automatically resent.
 Report development reward and credit separately, with the scored denominator
 and infrastructure failure count. Held-out PRs record completion/sealing only.
 Do not publish a combined nineteen-task score while the holdout is sealed.
+
+## Completion record (2026-10-21)
+
+All sixteen attempts completed under the declared restricted limits. Eight
+additional development tasks scored 0/8; eight held-out results remain sealed.
+See `docs/results.md` for exact outcomes and verification. This expansion is
+exploratory evidence on official tasks, not a baseline under the official
+90-minute / 400-step / 300-second evaluation limits. No replacement run or
+training was launched while recording this completion.

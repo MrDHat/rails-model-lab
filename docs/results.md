@@ -1,8 +1,107 @@
 # Evaluation evidence and retained history
 
-## Current checkpoint
+## Current checkpoint: restricted-budget exploratory runs
 
-All three planned official model attempts finished on 2026-10-20, with one
+The sixteen-task expansion finished on 2026-10-21 at 04:19:09 UTC. All sixteen
+planned attempts ran once: eight development attempts completed with scored
+outcomes, and eight held-out attempts completed with evidence sealed locally.
+The coordinator recorded no infrastructure failures; all oracle/nop controls
+passed before their model attempt. No training has run.
+
+**These are restricted-budget exploratory results on official tasks, not the
+baseline under the official evaluation profile.** The local runner used a
+30-minute agent deadline, 32 steps and 60 seconds per command. The pinned
+official profile specifies 90 minutes, 400 steps and 300 seconds respectively.
+The local 16,384-input / 2,048-output token caps and other model settings also
+remain distinct from the hosted profile. Keep the original labels and evidence;
+do not present these outcomes as results under the official limits.
+
+After the user clarified that the goal was the actual benchmark baseline, the
+assistant said it would stop scheduling restricted attempts. That action was
+not implemented: no stop marker was installed, and the original coordinator
+completed its declared sixteen-task scope. The separate official-limit run
+never started. This completion checkpoint records the actual execution; it
+does not authorize or launch a replacement attempt.
+
+### Eight additional development attempts
+
+| Official task | Harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| `at-archive-book-access` | `agent_timeout` / `time_limit` | 0.0 | 0.0 | 23 | 2012.1 |
+| `at-bulk-access-grants` | `step_limit_reached` / `step_limit` | 0.0 | 0.0 | 32 | 1479.9 |
+| `at-deep-link-return` | `agent_timeout` / `time_limit` | 0.0 | 0.0 | 26 | 1869.0 |
+| `at-error-page-flake` | `agent_timeout` / `time_limit` | 0.0 | 0.0 | 22 | 1938.5 |
+| `at-legacy-conversions` | `agent_timeout` / `time_limit` | 0.0 | 0.0 | 23 | 2052.1 |
+| `at-log-to-terminal` | `agent_timeout` / `time_limit` | 0.0 | 0.0 | 20 | 1964.2 |
+| `at-purge-embedded-images` | `agent_timeout` / `time_limit` | 0.0 | 0.0 | 22 | 1869.0 |
+| `at-scoped-broadcast` | `agent_timeout` / `time_limit` | 0.0 | 0.0 | 24 | 1854.1 |
+
+All eight outcomes are scored: **0 solved / 8 scored**, mean reward 0.0 and
+mean credit 0.0. Seven reached the agent deadline and one reached the step
+limit; all eight exhausted a restricted cap. Do not attribute these results
+solely to Rails knowledge or extrapolate them to the official budget. Preserve
+actual durations, including cooperative timeout overruns. None explicitly
+submitted. The earlier three-task subset remains unchanged: together the
+eleven inspected development attempts have one solved task, with that task
+awarded credit 0.10. This is not a nineteen-task aggregate.
+
+| Task | Local evidence | Trial | Input / output tokens | Generation seconds | Peak unified GiB |
+| --- | --- | --- | --- | --- | --- |
+| `at-archive-book-access` | `runs/local-evaluation-F6dQDG` | `at-archive-book-access__pETOdvT` | 119338 / 1986 | 1950.06 | 3.748 |
+| `at-bulk-access-grants` | `runs/local-evaluation-R6Snum` | `at-bulk-access-grants__GPucuUH` | 130391 / 1771 | 1434.31 | 3.569 |
+| `at-deep-link-return` | `runs/local-evaluation-hdqslM` | `at-deep-link-return__nshHi3t` | 152269 / 3050 | 1815.17 | 3.739 |
+| `at-error-page-flake` | `runs/local-evaluation-zZMcyB` | `at-error-page-flake__T2g43Vz` | 108753 / 2924 | 1888.05 | 3.702 |
+| `at-legacy-conversions` | `runs/local-evaluation-Ztq0rC` | `at-legacy-conversions__caeoKUZ` | 114475 / 2158 | 1998.81 | 3.888 |
+| `at-log-to-terminal` | `runs/local-evaluation-SQ4WQX` | `at-log-to-terminal__hzBEHjh` | 108012 / 1960 | 1915.80 | 3.780 |
+| `at-purge-embedded-images` | `runs/local-evaluation-47Ug77` | `at-purge-embedded-images__v8buNTQ` | 109634 / 1038 | 1818.30 | 3.959 |
+| `at-scoped-broadcast` | `runs/local-evaluation-laNI31` | `at-scoped-broadcast__JBENz5y` | 105276 / 1540 | 1795.28 | 3.647 |
+
+All 192 development responses were generated and consumed, with no pending,
+expired, late, runtime-error or truncated responses. Development totals:
+948148 input / 16427 output tokens, 14615.78 generation seconds and 15038.9
+harness wall seconds; peak unified allocation 3.959 GiB. Reports were generated
+with the existing `bin/report-local-run`; raw evidence remains ignored locally.
+
+### Held-out completion only
+
+| Official task | Status |
+| --- | --- |
+| `at-release-recap` | Completed; sealed hashes verified |
+| `at-resumable-cleanup` | Completed; sealed hashes verified |
+| `at-throttle-search` | Completed; sealed hashes verified |
+| `at-audit-sweep` | Completed; sealed hashes verified |
+| `at-enqueue-after-commit` | Completed; sealed hashes verified |
+| `at-toc-cache-per-role` | Completed; sealed hashes verified |
+| `at-variant-processed-once` | Completed; sealed hashes verified |
+| `at-erase-account` | Completed; sealed hashes verified |
+
+No held-out reward, credit, patch, trajectory or verifier output was inspected
+or published while handling this event. No combined nineteen-task score is
+published. The holdout remains unavailable for training/checkpoint selection.
+
+### Verification and continuation
+
+All sixteen runs have clean recorded source
+`df5712b2c126c0732e895131125a7d741f5d7d24`, the pinned benchmark/model revisions,
+and unchanged runner/provider/worker/dependency snapshots. Verified all 780
+frozen input hashes per run (12480 total), identical 11-file model manifests
+across runs and the current cached model bytes. Verified each held-out seal
+against its coordinator-recorded digest and every listed file hash (6925
+sealed files total); no files were added to or removed from those sealed runs.
+
+The finished event and one-time direct delivery are retained under
+`runs/atomic-baseline-20261020/monitor/`; handling acknowledgement is written
+after the checkpoint is pushed. No scheduled polling, rerun, regrading,
+model hint, training or merge was performed for this completion.
+
+The next baseline needs the official evaluation limits and an explicit audit
+of remaining local model/provider differences. The prepared three-limit
+profile alone is not the full official hosted configuration. No official-limit
+controller or inference started, and no new attempt is launched by this event.
+
+## Initial three-task restricted-budget subset
+
+The initial three attempts on official tasks finished on 2026-10-20, with one
 fresh attempt per task. No training run has occurred.
 
 | Official task | Outcome / agent status | Reward | Credit | Steps | Wall seconds |
@@ -77,14 +176,6 @@ from the working tree and restored free space to 9.8 GiB. The pinned checkout
 remains clean; our own run evidence is untouched. This identifies reclaimable
 space, not the cause of the earlier disk-space decrease.
 
-The remaining task launched once with unchanged settings and clean source
-`b9cc927`, in `runs/local-evaluation-Pi1SXX`, trial
-`at-tenant-isolation__LOVpl49`. It is monitored by the detached
-`bin/watch-local-evaluation` observer; no result is claimed yet. The observer
-does not change the frozen run. Direct delivery through `codex queue` replaces
-the paused event-delivery heartbeat: plain Python waits for the event and queues
-one message to this existing chat. No model turns run while waiting. Do not rerun the
-two completed attempts to improve the score.
 The remaining task then launched once with unchanged settings. The detached
 observer emitted its finished event at 18:52:39 UTC. A one-time notifier queued
 a message to this existing chat through `codex queue` at 18:52:59 UTC; this chat
@@ -92,7 +183,7 @@ received it and recorded the result above. The scheduled heartbeat is paused.
 The observer and notifier did not alter the frozen attempt. Delivery evidence
 and acknowledgement are retained in the run's `monitor/` directory.
 
-The declared baseline is now complete. Preserve these first-attempt results;
+That initial restricted-budget subset is complete. Preserve its first-attempt results;
 do not rerun them to select a better score. A future evaluation or training
 phase requires a separately declared scope and keeps this baseline unchanged.
 

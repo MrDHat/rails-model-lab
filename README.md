@@ -5,13 +5,20 @@ before considering training. Use **lemans 1.5.2**, its **miniswen agent**, and t
 unchanged official tasks and graders. This repository adds a local inference
 adapter, a runner that freezes inputs, and an evidence report.
 
-The three-task local community 4-bit Qwen baseline is finished: one solved out
-of three, with zero infrastructure failures. Announcement scored reward 0.0;
-compaction scored reward 1.0 (credit 0.10); tenant isolation timed out without
-submission and scored reward 0.0. Mean reward is 0.3333; mean credit is 0.0333.
-No training run has occurred. See [results](docs/results.md).
+Restricted-budget exploratory runs now cover all nineteen official atomic tasks:
+three initial attempts plus sixteen in the expansion. The eight additional
+development tasks scored 0/8; across the eleven inspected development tasks,
+one solved task received credit 0.10. Eight held-out results remain sealed.
+The coordinator recorded no infrastructure failures in the expansion. No
+training has run. See [results](docs/results.md).
 
-## Run the official baseline
+**This is not the baseline under the official evaluation limits.** These runs
+used 30 minutes / 32 steps / 60 seconds per command; the pinned official profile
+uses 90 minutes / 400 steps / 300 seconds per command. The official-limit run
+has not started. Local context/output caps and provider choices also require
+explicit disclosure before claiming an official-profile baseline.
+
+## Reproduce the restricted-budget exploratory profile
 
 Requirements: Ruby 3.4+, Bundler, Docker, and the existing Apple Silicon MLX
 runtime. Keep the Mac lid open; the runner prevents idle sleep only while active.
@@ -23,8 +30,10 @@ bash bin/run-local-evaluation at-announce-once
 python3 bin/report-local-run runs/local-evaluation-RUN_ID
 ```
 
-Run the three tasks sequentially, one fresh attempt each, in the
-[frozen protocol](docs/local-baseline-protocol-2026-10-20.md). The runner requires
+The initial three-task [protocol](docs/local-baseline-protocol-2026-10-20.md)
+and sixteen-task [expansion](docs/atomic-baseline-expansion-2026-10-20.md) are
+complete; preserve those attempts without rerunning them to select a better
+score. The command above documents the restricted profile. The runner requires
 a clean official checkout at the revision in `benchmark-revision.txt`. It
 copies official application/build/task files to a fresh ignored run directory,
 records file hashes and model hashes, and invokes lemans with the local provider.
