@@ -246,3 +246,18 @@ its API readiness check. No attempt or live task container was interrupted.
 The pinned child PATH also includes Docker's existing `/usr/local/bin` path.
 Frozen benchmark cleanliness and 90m / 400 / 300 limits passed preflight before
 launch. No benchmark attempt was created by these service checks.
+
+### Exact Ruby installation correction before inference
+
+The first runtime correction selected rbenv Ruby 3.4.2, but the existing
+native JSON gem links to mise Ruby 3.4.2. Loading lemans exposed this mismatch
+before controls or any fourth model attempt ran. Version and `bundle check`
+alone had not detected it. The corrected launcher pins the exact original
+`/Users/mrdhat/.local/share/mise/installs/ruby/3.4.2/bin` installation; loading
+lemans and the native JSON extension now succeeds. No gems were rebuilt.
+The prelaunch failure event, state and native-extension error log are retained
+locally and acknowledged. The earlier Ruby 2.6 control-log path was reused by
+that failed correction, overwriting its raw log; its error remains documented
+in the earlier checkpoint, event and validation scope. Further control/attempt
+logs use a fresh isolated directory. Continuation events now use
+`remaining-runtime-monitor`. The three completed attempts remain unchanged.
