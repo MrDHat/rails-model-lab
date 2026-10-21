@@ -302,3 +302,23 @@ training performed while handling this event. Before any future continuation,
 restore the exact pinned weights and verify them against the recorded hash;
 then retain the three completed model attempts and passed controls. This
 callback does not authorize downloading or another launch.
+
+## Authorized weights restoration and continuation (2026-10-21)
+
+The user authorized downloading the missing weights again and attributed the
+missing artifact to laptop cleanup. Download only `model.safetensors` from
+the same pinned community revision, using the existing local cache. Verify
+all eleven model files against the recorded manifest before inference.
+The download reached about 1.75 GiB before pausing; restoration is not yet
+claimed complete at this checkpoint. A detached recovery gate waits up to
+twenty additional minutes for that existing download, then verifies bytes
+and starts only the sixteen unstarted model attempts. If unavailable or
+mismatched, it delivers a failure event without launching inference.
+
+Reuse the passed archive-book-access oracle/nop controls; subsequent tasks
+still run their controls. Preserve all three completed model outcomes and
+earlier failure evidence. Runtime/Docker and frozen benchmark preflight
+checks passed. New logs and events use `restored-weights-logs` and
+`restored-weights-monitor`; recovery status records whether verification
+has actually finished. Direct callbacks replace context polling. No training
+or held-out outcome inspection is authorized.
