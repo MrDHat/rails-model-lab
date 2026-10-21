@@ -261,3 +261,44 @@ that failed correction, overwriting its raw log; its error remains documented
 in the earlier checkpoint, event and validation scope. Further control/attempt
 logs use a fresh isolated directory. Continuation events now use
 `remaining-runtime-monitor`. The three completed attempts remain unchanged.
+
+## Current stop: missing model weights (2026-10-21)
+
+The controller emitted a failure at 22:21:22 Europe/Dublin (21:21:22 UTC):
+`at-archive-book-access: missing unique evidence directory`. The underlying
+runner log says `Expected the pinned local model snapshot`. Its preflight
+refused to proceed before creating a model run directory or loading weights.
+The snapshot directory exists, but its `model.safetensors` symlink points to
+an absent cache blob. The other ten recorded model files still match their
+hashes. When or why the weights became unavailable is not established.
+
+Archive-book-access oracle and nop controls both completed with rewards
+1.0 and 0.0 respectively, zero model tokens, and original harness outcomes
+`completed`. This is a missing local artifact, not a failed control, scored
+model failure or unscored harness trial. No fourth model trial exists.
+The monitor's final task status says `running` because it was set before the
+preflight command; it does not mean inference started. The controller and
+runner PIDs have exited. No process was killed or restarted for this event.
+
+The three completed model results remain unchanged: announcement reward /
+credit 0.0 / 0.0 (format error, 19 steps, 893.9 seconds); compaction 1.0 / 0.10
+(submitted, 32 steps, 1120.5 seconds); tenant isolation 0.0 / 0.0 (scored
+agent timeout, 52 steps, 5449.6 seconds). All eight other development model
+attempts and all eight held-out model attempts remain not run. No full-batch
+score is reported, and no held-out scores or raw evidence were inspected.
+There are no new held-out seals to verify.
+
+Reverification matched 2,340 frozen input hashes, the three identical recorded
+model manifests, empty recorded working-tree patches and original source
+revision. Ten currently available model files match; the missing weights
+cannot be reverified now. Earlier complete model-byte verification remains
+historical evidence, not a claim that the file is still present. New controls
+used source `770b57f`; no model trial used that revision. Raw controls, logs,
+state and verification records remain local and ignored. Free space was
+17 GiB at diagnosis; disk capacity is not the reported failure.
+
+No weights were downloaded, no attempts rerun, no later tasks launched and no
+training performed while handling this event. Before any future continuation,
+restore the exact pinned weights and verify them against the recorded hash;
+then retain the three completed model attempts and passed controls. This
+callback does not authorize downloading or another launch.

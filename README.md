@@ -13,14 +13,13 @@ No training run has occurred. See [results](docs/results.md).
 
 ## Full time and step allowance: interrupted
 
-Three development attempts are complete: compaction passed (reward 1.0,
+Three development model attempts are complete: compaction passed (reward 1.0,
 credit 0.10), announcement scored 0.0 after a format error, and tenant isolation
-scored 0.0 after the 90-minute timeout (52 steps). The continuation then stopped
-before the fourth task's controls ran because its launcher selected macOS Ruby
-2.6 instead of the existing Ruby 3.4.2/Bundler 2.6.2 installation. The other
-sixteen model attempts, including all eight held-out tasks, remain not run.
-This is an incomplete batch. See the
-[continuation record](docs/official-limits-comparison-2026-10-20.md#continuation-stopped-before-the-fourth-model-attempt-2026-10-21).
+scored 0.0 after the 90-minute timeout (52 steps). Archive-book-access controls
+passed, but its model launch was refused because the pinned weights file is
+missing. The other sixteen model attempts, including all eight held-out tasks,
+remain not run. The three completed results remain unchanged. See the
+[current stop record](docs/official-limits-comparison-2026-10-20.md#current-stop-missing-model-weights-2026-10-21).
 
 ## Run the official baseline
 
