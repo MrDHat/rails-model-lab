@@ -1,4 +1,4 @@
-# Official-limit comparison: declared scope
+# Qwen baseline with the official time and step allowance
 
 The user requested a second baseline with the pinned official agent time,
 step and command limits, without interference with the restricted baseline.
@@ -103,3 +103,14 @@ failure, actionable failure or batch completion. No scheduled model polling.
 Reference solutions, hidden tests and all raw run evidence remain local and
 excluded from inference/training. Candidate PR approval and explicit user
 authorization remain prerequisites for any future training.
+
+## Launch authorization (2026-10-21)
+
+The user requested “lets give it full allowance” after the restricted batch
+finished. Run the nineteen-task scope above under 90 minutes / 400 steps /
+300 seconds per command. This is the Qwen baseline with those allowances,
+not an experiment to compare budget settings. The local token caps and
+provider/model differences above remain disclosed. The restricted results
+remain separate; do not select the best attempt across budgets. All eight
+held-out tasks remain sealed. The direct callback updates PR #31. No training
+is authorized.
