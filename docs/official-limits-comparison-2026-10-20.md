@@ -372,3 +372,26 @@ profile and local token caps were unchanged. Any future change to context
 handling must be explicit and recorded as a different configuration; preserve
 this unscored result. This callback does not authorize new attempts or changes
 to the frozen protocol.
+
+## Complete remaining scope without stopping on invalid trials (2026-10-22)
+
+The user explicitly directed completing the baseline before reporting back.
+Retain all five existing attempts, including bulk-access-grants unscored, and
+attempt the fourteen unstarted tasks once each. Keep the same 90m / 400 / 300
+limits, 16,384 input / 2,048 output tokens, model and decoding settings. Do not
+rerun failed tasks or change context handling based on observed failures.
+
+An individual unscored development result is now recorded and reported locally,
+then independent tasks continue. Held-out outcomes are not interpreted; original
+evidence is sealed for both successful and unsuccessful trials. Global problems
+(disk, interference, failed controls or missing artifacts) still prevent unsafe
+launches and deliver an internal diagnosis callback. No new task scope, model
+hints, training, automatic merges, purchases or access changes are authorized.
+
+A detached controller uses fresh `finish-monitor` and `finish-logs` directories,
+with direct completion delivery and no scheduled model polling. A simulated
+full continuation verified that an unscored task does not halt subsequent tasks,
+all fourteen are attempted once, and all eight opaque held-out results are
+sealed without parsing. Preflight verified the exact mise Ruby/native harness,
+Docker, all eleven pinned model-file hashes, clean benchmark and no overlapping
+inference. Earlier attempts and failure events remain untouched.
