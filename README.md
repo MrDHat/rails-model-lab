@@ -13,13 +13,13 @@ No training run has occurred. See [results](docs/results.md).
 
 ## Full time and step allowance: interrupted
 
-Three development model attempts are complete: compaction passed (reward 1.0,
-credit 0.10), announcement scored 0.0 after a format error, and tenant isolation
-scored 0.0 after the 90-minute timeout (52 steps). Archive-book-access controls
-passed, but its model launch was refused because the pinned weights file is
-missing. The other sixteen model attempts, including all eight held-out tasks,
-remain not run. The three completed results remain unchanged. See the
-[current stop record](docs/official-limits-comparison-2026-10-20.md#current-stop-missing-model-weights-2026-10-21).
+Five development attempts have outcomes: compaction passed; announcement,
+tenant isolation and archive-book-access scored 0.0; bulk-access-grants is
+unscored because its 17,377-token input exceeded the fixed local 16,384-token
+cap. Reward and credit are absent for that unscored attempt. The restored
+weights matched all recorded hashes. Fourteen tasks, including all eight
+held-out tasks, remain not run. This is an incomplete baseline. See the
+[current stop record](docs/official-limits-comparison-2026-10-20.md#current-stop-input-budget-exceeded-2026-10-22).
 
 ## Run the official baseline
 

@@ -322,3 +322,53 @@ checks passed. New logs and events use `restored-weights-logs` and
 `restored-weights-monitor`; recovery status records whether verification
 has actually finished. Direct callbacks replace context polling. No training
 or held-out outcome inspection is authorized.
+
+## Current stop: input budget exceeded (2026-10-22)
+
+The weights download completed and all eleven model files matched their
+recorded hashes before continuation began. Archive-book-access then completed
+with a scored timeout. Bulk-access-grants stopped with an unscored agent error,
+and the controller stopped further launches at 01:16:35 Europe/Dublin
+(00:16:35 UTC). The fixed local input guard rejected 17,377 tokens against the
+16,384-token cap. No history truncation, retry, hint or regrading was applied.
+This is the disclosed local context limitation, not a scored zero or a failure
+to meet the benchmark's task requirements.
+
+| Development task | Original harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error, no submission | 0.0 | 0.0 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.0 | 52 | 5449.6 |
+| at-archive-book-access | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.0 | 35 | 5683.3 |
+| at-bulk-access-grants | agent_error (unscored) / error, no submission | absent | absent | absent from harness result | 3905.0 |
+
+Four scored attempts include one pass; the fifth is unscored and has no reward,
+credit or usage fields in the original harness result. Do not fabricate those
+fields, count it as a scored zero, or infer a full-benchmark score from this
+partial prefix. Six development tasks and all eight held-out tasks remain
+not run. No held-out outcome, patch, trajectory or verifier log was inspected;
+there are no new held-out seals to verify.
+
+Archive-book-access generated and consumed 35 responses, one output-truncated,
+with no pending, expired, late or transport-error responses. Its agent phase
+lasted about 94 minutes 3 seconds; the cooperative 90-minute deadline can
+overrun. Bulk-access-grants had 28 requests, 27 successful generations, two
+output-truncated responses and one explicit input-budget error. None remained
+pending, expired or late. Generation counts do not substitute for missing
+harness step/usage fields. Controls passed before both attempts; archive
+controls were reused from the earlier successful validation without a rerun.
+
+Verification regenerated all five development reports without grading, matched
+3,900 frozen input hashes, five identical recorded model manifests against
+all eleven current model files, and clean recorded source. The first three
+attempts retain source `e891e37`; the new two use `351628f`. The restored weights
+therefore match the earlier baseline bytes. Raw evidence and verification
+records remain ignored and local. Controller, runner, worker and harness PIDs
+had exited at diagnosis. No process was killed or restarted for this event.
+
+No later task was launched, attempt rerun, model hint supplied, or training
+performed while handling the event. The original 90m / 400-step / 300-second
+profile and local token caps were unchanged. Any future change to context
+handling must be explicit and recorded as a different configuration; preserve
+this unscored result. This callback does not authorize new attempts or changes
+to the frozen protocol.
