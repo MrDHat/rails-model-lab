@@ -5,21 +5,28 @@ before considering training. Use **lemans 1.5.2**, its **miniswen agent**, and t
 unchanged official tasks and graders. This repository adds a local inference
 adapter, a runner that freezes inputs, and an evidence report.
 
-The three-task local community 4-bit Qwen baseline is finished: one solved out
+The earlier three-task local community 4-bit Qwen baseline finished: one solved out
 of three, with zero infrastructure failures. Announcement scored reward 0.0;
 compaction scored reward 1.0 (credit 0.10); tenant isolation timed out without
 submission and scored reward 0.0. Mean reward is 0.3333; mean credit is 0.0333.
 No training run has occurred. See [results](docs/results.md).
 
-## Full time and step allowance: interrupted
+## Full time and step allowance: completed
 
-Five development attempts have outcomes: compaction passed; announcement,
-tenant isolation and archive-book-access scored 0.0; bulk-access-grants is
-unscored because its 17,377-token input exceeded the fixed local 16,384-token
-cap. Reward and credit are absent for that unscored attempt. The restored
-weights matched all recorded hashes. Fourteen tasks, including all eight
-held-out tasks, remain not run. This is an incomplete baseline. See the
-[current stop record](docs/official-limits-comparison-2026-10-20.md#current-stop-input-budget-exceeded-2026-10-22).
+All nineteen authorized tasks have been attempted once: **one pass, nine scored
+failures and one unscored input-limit error** across eleven development tasks;
+**eight held-out attempts completed and remain sealed**. Compaction scored
+reward 1.0 / credit 0.10. The other nine scored development attempts scored
+0.0 / 0.0. Bulk-access-grants has no reward or credit because its 17,377-token
+input exceeded the fixed 16,384-token cap. Among ten scored development
+attempts, mean reward is 0.10 and mean credit is 0.01; no aggregate includes
+the sealed held-out outcomes.
+
+The 90-minute / 400-step / 300-second-command profile retained the local
+16,384 input / 2,048 output token limits. All frozen inputs, model hashes and
+held-out seals verified. No task was rerun or regraded, and no training ran.
+See the [complete development results](docs/results.md#completed-nineteen-task-baseline-2026-10-23)
+and [protocol and retained history](docs/official-limits-comparison-2026-10-20.md).
 
 ## Run the official baseline
 

@@ -1,5 +1,11 @@
 # Qwen baseline with the official time and step allowance
 
+**Completed 23 October 2026:** all nineteen tasks attempted; development has
+one pass, nine scored failures and one unscored input-limit error. Eight
+held-out attempts are completed and sealed. See the
+[final record](#completed-nineteen-task-baseline-2026-10-23). Earlier stops and
+authorizations below are retained history.
+
 The user requested a second baseline with the pinned official agent time,
 step and command limits, without interference with the restricted baseline.
 This is a separate first attempt per task under a new budget, not a replacement
@@ -262,7 +268,7 @@ in the earlier checkpoint, event and validation scope. Further control/attempt
 logs use a fresh isolated directory. Continuation events now use
 `remaining-runtime-monitor`. The three completed attempts remain unchanged.
 
-## Current stop: missing model weights (2026-10-21)
+## Historical stop: missing model weights (2026-10-21)
 
 The controller emitted a failure at 22:21:22 Europe/Dublin (21:21:22 UTC):
 `at-archive-book-access: missing unique evidence directory`. The underlying
@@ -323,7 +329,7 @@ checks passed. New logs and events use `restored-weights-logs` and
 has actually finished. Direct callbacks replace context polling. No training
 or held-out outcome inspection is authorized.
 
-## Current stop: input budget exceeded (2026-10-22)
+## Historical stop: input budget exceeded (2026-10-22)
 
 The weights download completed and all eleven model files matched their
 recorded hashes before continuation began. Archive-book-access then completed
@@ -395,3 +401,85 @@ all fourteen are attempted once, and all eight opaque held-out results are
 sealed without parsing. Preflight verified the exact mise Ruby/native harness,
 Docker, all eleven pinned model-file hashes, clean benchmark and no overlapping
 inference. Earlier attempts and failure events remain untouched.
+
+## Completed nineteen-task baseline (2026-10-23)
+
+All nineteen authorized tasks have been attempted once under this profile:
+eleven development attempts are reported below and eight held-out attempts
+are completed and sealed. The final event was emitted at 01:57:30 UTC
+(02:57:30 Europe/Dublin) on 23 October. The first five attempts were retained;
+independent unstarted tasks continued after the input-limit failure. No task
+was rerun or regraded, and the configuration stayed fixed.
+
+Development outcomes: **one pass, nine scored failures, one unscored error**.
+Among the ten scored development attempts, mean reward is 0.10 and mean credit
+is 0.01. The unscored attempt has no reward, credit or usage in its original
+harness result and is excluded from those means. There is no nineteen-task
+aggregate while held-out outcomes remain sealed.
+
+| Development task | Original harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error, no submission | 0.0 | 0.00 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 52 | 5449.6 |
+| at-archive-book-access | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 35 | 5683.3 |
+| at-bulk-access-grants | agent_error (unscored) / error, no submission | absent | absent | absent from harness result | 3905.0 |
+| at-deep-link-return | completed (scored) / format_error, no submission | 0.0 | 0.00 | 19 | 2485.3 |
+| at-error-page-flake | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 35 | 5520.1 |
+| at-legacy-conversions | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 43 | 5628.0 |
+| at-log-to-terminal | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 35 | 5546.9 |
+| at-purge-embedded-images | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 41 | 5617.5 |
+| at-scoped-broadcast | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 47 | 5551.2 |
+
+The two format errors each followed three consecutive responses without a valid
+bash tool call. Seven scored attempts reached the agent time limit; none
+reached 400 steps. Compaction submitted with an empty submission message;
+its original verifier reward remains 1.0 and credit 0.10. Bulk-access-grants
+is unscored because `17377 > 16384` exceeded the input budget. Its 28 requests
+and 27 successful generations do not replace missing harness step/usage data.
+All eleven development reports have zero pending, expired or quarantined late
+responses; bulk-access-grants has the single explicit input-budget error.
+
+| Held-out task | Published status |
+| --- | --- |
+| at-release-recap | Completed; sealed and hashes verified |
+| at-resumable-cleanup | Completed; sealed and hashes verified |
+| at-throttle-search | Completed; sealed and hashes verified |
+| at-audit-sweep | Completed; sealed and hashes verified |
+| at-enqueue-after-commit | Completed; sealed and hashes verified |
+| at-toc-cache-per-role | Completed; sealed and hashes verified |
+| at-variant-processed-once | Completed; sealed and hashes verified |
+| at-erase-account | Completed; sealed and hashes verified |
+
+Held-out outcomes, rewards, credits, patches, trajectories and verifier logs
+were not inspected. Verification read seal manifests and hashed raw bytes;
+no held-out report or grading command was run. Seal manifests and raw evidence
+remain ignored and local.
+
+The fixed configuration was 90 minutes, 400 steps, 300-second commands,
+16,384 input / 2,048 output tokens, greedy decoding, thinking disabled,
+1,024-token prefill chunks and a 600-second response deadline. The model is
+`mlx-community/Qwen3.5-4B-4bit` at
+`0e7ffd5c629ef7719d4cbc04069232580bfa9d9c`, running locally through MLX on
+the M1 Mac; lemans 1.5.2/miniswen ran the unchanged official tasks/verifiers
+at benchmark revision `f587d5a44897f3467af2a48c0503aef4eb6acf55`.
+This uses the official time, step and command limits; the quantized model,
+local inference speed and token caps differ from the hosted profile. The
+cooperative time deadline can overrun. These results alone do not establish
+performance under a faster runtime or larger context.
+
+Final verification passed 14,820 frozen input hash checks, nineteen identical
+model manifests against all eleven current model files, nineteen identical
+frozen benchmark configurations, and all eight held-out seals including their
+exact file sets and file hashes. All recorded working-tree patches are empty.
+The first three attempts used source `e891e37`, the next two `351628f`, and the
+last fourteen `e7082ea`; copied runner, provider, worker, Ruby/Python locks and
+runtime metadata are byte-identical across all nineteen runs. The eleven
+development reports were regenerated with `bin/report-local-run`, without
+inference or grading. No benchmark inference process remained at final check.
+
+All earlier interrupted and failed attempts remain in the historical records
+below. The restricted-budget baseline remains a separate experiment. No
+training ran; candidate evaluation PR review and explicit training authorization
+are still required before any training. No further attempt was launched while
+handling completion.
