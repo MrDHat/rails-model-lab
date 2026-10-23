@@ -1,6 +1,270 @@
 # Evaluation evidence and retained history
 
-## Current checkpoint
+## Completed nineteen-task baseline (2026-10-23)
+
+All nineteen authorized tasks have been attempted once under this profile:
+eleven development attempts are reported below and eight held-out attempts
+are completed and sealed. The final event was emitted at 01:57:30 UTC
+(02:57:30 Europe/Dublin) on 23 October. The first five attempts were retained;
+independent unstarted tasks continued after the input-limit failure. No task
+was rerun or regraded, and the configuration stayed fixed.
+
+Development outcomes: **one pass, nine scored failures, one unscored error**.
+Among the ten scored development attempts, mean reward is 0.10 and mean credit
+is 0.01. The unscored attempt has no reward, credit or usage in its original
+harness result and is excluded from those means. There is no nineteen-task
+aggregate while held-out outcomes remain sealed.
+
+| Development task | Original harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error, no submission | 0.0 | 0.00 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 52 | 5449.6 |
+| at-archive-book-access | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 35 | 5683.3 |
+| at-bulk-access-grants | agent_error (unscored) / error, no submission | absent | absent | absent from harness result | 3905.0 |
+| at-deep-link-return | completed (scored) / format_error, no submission | 0.0 | 0.00 | 19 | 2485.3 |
+| at-error-page-flake | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 35 | 5520.1 |
+| at-legacy-conversions | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 43 | 5628.0 |
+| at-log-to-terminal | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 35 | 5546.9 |
+| at-purge-embedded-images | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 41 | 5617.5 |
+| at-scoped-broadcast | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.00 | 47 | 5551.2 |
+
+The two format errors each followed three consecutive responses without a valid
+bash tool call. Seven scored attempts reached the agent time limit; none
+reached 400 steps. Compaction submitted with an empty submission message;
+its original verifier reward remains 1.0 and credit 0.10. Bulk-access-grants
+is unscored because `17377 > 16384` exceeded the input budget. Its 28 requests
+and 27 successful generations do not replace missing harness step/usage data.
+All eleven development reports have zero pending, expired or quarantined late
+responses; bulk-access-grants has the single explicit input-budget error.
+
+| Held-out task | Published status |
+| --- | --- |
+| at-release-recap | Completed; sealed and hashes verified |
+| at-resumable-cleanup | Completed; sealed and hashes verified |
+| at-throttle-search | Completed; sealed and hashes verified |
+| at-audit-sweep | Completed; sealed and hashes verified |
+| at-enqueue-after-commit | Completed; sealed and hashes verified |
+| at-toc-cache-per-role | Completed; sealed and hashes verified |
+| at-variant-processed-once | Completed; sealed and hashes verified |
+| at-erase-account | Completed; sealed and hashes verified |
+
+Held-out outcomes, rewards, credits, patches, trajectories and verifier logs
+were not inspected. Verification read seal manifests and hashed raw bytes;
+no held-out report or grading command was run. Seal manifests and raw evidence
+remain ignored and local.
+
+The fixed configuration was 90 minutes, 400 steps, 300-second commands,
+16,384 input / 2,048 output tokens, greedy decoding, thinking disabled,
+1,024-token prefill chunks and a 600-second response deadline. The model is
+`mlx-community/Qwen3.5-4B-4bit` at
+`0e7ffd5c629ef7719d4cbc04069232580bfa9d9c`, running locally through MLX on
+the M1 Mac; lemans 1.5.2/miniswen ran the unchanged official tasks/verifiers
+at benchmark revision `f587d5a44897f3467af2a48c0503aef4eb6acf55`.
+This uses the official time, step and command limits; the quantized model,
+local inference speed and token caps differ from the hosted profile. The
+cooperative time deadline can overrun. These results alone do not establish
+performance under a faster runtime or larger context.
+
+Final verification passed 14,820 frozen input hash checks, nineteen identical
+model manifests against all eleven current model files, nineteen identical
+frozen benchmark configurations, and all eight held-out seals including their
+exact file sets and file hashes. All recorded working-tree patches are empty.
+The first three attempts used source `e891e37`, the next two `351628f`, and the
+last fourteen `e7082ea`; copied runner, provider, worker, Ruby/Python locks and
+runtime metadata are byte-identical across all nineteen runs. The eleven
+development reports were regenerated with `bin/report-local-run`, without
+inference or grading. No benchmark inference process remained at final check.
+
+All earlier interrupted and failed attempts remain in the historical records
+below. The restricted-budget baseline remains a separate experiment. No
+training ran; candidate evaluation PR review and explicit training authorization
+are still required before any training. No further attempt was launched while
+handling completion.
+
+## Historical stop: input budget exceeded (2026-10-22)
+
+The weights download completed and all eleven model files matched their
+recorded hashes before continuation began. Archive-book-access then completed
+with a scored timeout. Bulk-access-grants stopped with an unscored agent error,
+and the controller stopped further launches at 01:16:35 Europe/Dublin
+(00:16:35 UTC). The fixed local input guard rejected 17,377 tokens against the
+16,384-token cap. No history truncation, retry, hint or regrading was applied.
+This is the disclosed local context limitation, not a scored zero or a failure
+to meet the benchmark's task requirements.
+
+| Development task | Original harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error, no submission | 0.0 | 0.0 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.0 | 52 | 5449.6 |
+| at-archive-book-access | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.0 | 35 | 5683.3 |
+| at-bulk-access-grants | agent_error (unscored) / error, no submission | absent | absent | absent from harness result | 3905.0 |
+
+Four scored attempts include one pass; the fifth is unscored and has no reward,
+credit or usage fields in the original harness result. Do not fabricate those
+fields, count it as a scored zero, or infer a full-benchmark score from this
+partial prefix. Six development tasks and all eight held-out tasks remain
+not run. No held-out outcome, patch, trajectory or verifier log was inspected;
+there are no new held-out seals to verify.
+
+Archive-book-access generated and consumed 35 responses, one output-truncated,
+with no pending, expired, late or transport-error responses. Its agent phase
+lasted about 94 minutes 3 seconds; the cooperative 90-minute deadline can
+overrun. Bulk-access-grants had 28 requests, 27 successful generations, two
+output-truncated responses and one explicit input-budget error. None remained
+pending, expired or late. Generation counts do not substitute for missing
+harness step/usage fields. Controls passed before both attempts; archive
+controls were reused from the earlier successful validation without a rerun.
+
+Verification regenerated all five development reports without grading, matched
+3,900 frozen input hashes, five identical recorded model manifests against
+all eleven current model files, and clean recorded source. The first three
+attempts retain source `e891e37`; the new two use `351628f`. The restored weights
+therefore match the earlier baseline bytes. Raw evidence and verification
+records remain ignored and local. Controller, runner, worker and harness PIDs
+had exited at diagnosis. No process was killed or restarted for this event.
+
+No later task was launched, attempt rerun, model hint supplied, or training
+performed while handling the event. The original 90m / 400-step / 300-second
+profile and local token caps were unchanged. Any future change to context
+handling must be explicit and recorded as a different configuration; preserve
+this unscored result. This callback does not authorize new attempts or changes
+to the frozen protocol.
+
+## Historical stop: missing model weights (2026-10-21)
+
+The controller emitted a failure at 22:21:22 Europe/Dublin (21:21:22 UTC):
+`at-archive-book-access: missing unique evidence directory`. The underlying
+runner log says `Expected the pinned local model snapshot`. Its preflight
+refused to proceed before creating a model run directory or loading weights.
+The snapshot directory exists, but its `model.safetensors` symlink points to
+an absent cache blob. The other ten recorded model files still match their
+hashes. When or why the weights became unavailable is not established.
+
+Archive-book-access oracle and nop controls both completed with rewards
+1.0 and 0.0 respectively, zero model tokens, and original harness outcomes
+`completed`. This is a missing local artifact, not a failed control, scored
+model failure or unscored harness trial. No fourth model trial exists.
+The monitor's final task status says `running` because it was set before the
+preflight command; it does not mean inference started. The controller and
+runner PIDs have exited. No process was killed or restarted for this event.
+
+The three completed model results remain unchanged: announcement reward /
+credit 0.0 / 0.0 (format error, 19 steps, 893.9 seconds); compaction 1.0 / 0.10
+(submitted, 32 steps, 1120.5 seconds); tenant isolation 0.0 / 0.0 (scored
+agent timeout, 52 steps, 5449.6 seconds). All eight other development model
+attempts and all eight held-out model attempts remain not run. No full-batch
+score is reported, and no held-out scores or raw evidence were inspected.
+There are no new held-out seals to verify.
+
+Reverification matched 2,340 frozen input hashes, the three identical recorded
+model manifests, empty recorded working-tree patches and original source
+revision. Ten currently available model files match; the missing weights
+cannot be reverified now. Earlier complete model-byte verification remains
+historical evidence, not a claim that the file is still present. New controls
+used source `770b57f`; no model trial used that revision. Raw controls, logs,
+state and verification records remain local and ignored. Free space was
+17 GiB at diagnosis; disk capacity is not the reported failure.
+
+No weights were downloaded, no attempts rerun, no later tasks launched and no
+training performed while handling this event. Before any future continuation,
+restore the exact pinned weights and verify them against the recorded hash;
+then retain the three completed model attempts and passed controls. This
+callback does not authorize downloading or another launch.
+
+## Continuation stopped before the fourth model attempt (2026-10-21)
+
+The adopted tenant-isolation attempt finished with the original harness outcome
+`agent_timeout` (scored), reward 0.0 and credit 0.0, agent status `time_limit`,
+no submission, 52 steps and 5,449.6 wall seconds. Its agent phase lasted about
+90 minutes 31 seconds; cooperative deadline checks can overrun 90 minutes.
+All 52 responses were generated and consumed, with no pending, expired, late,
+truncated or transport-error responses. This is a scored timeout, not an
+unscored infrastructure failure. The original runner exit code is unavailable
+because its parent exited; it is not inferred from the result.
+
+| Development task | Original harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error, no submission | 0.0 | 0.0 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | agent_timeout (scored) / time_limit, no submission | 0.0 | 0.0 | 52 | 5449.6 |
+
+At 21:36:21 Europe/Dublin (20:36:21 UTC), the continuation emitted a failure
+before the next task's controls could run. Its launch environment selected
+`/usr/bin/bundle` and macOS Ruby 2.6, which could not find Bundler 2.6.2. The
+correct existing installation is Ruby 3.4.2 under
+`/Users/mrdhat/.rbenv/versions/ruby-3.4.2/bin`, with Bundler 2.6.2 verified by
+version-only commands. The continuation launcher failed to pin that runtime.
+This is a launcher environment error, not an oracle failure or model result.
+The validation directory contains only its scope record and no harness result.
+No controls or attempts were retried while diagnosing it.
+
+Three model attempts are now complete and scored; one passed. The other eight
+development attempts and all eight held-out attempts remain not run. Do not
+report this partial prefix as a full-benchmark result. No held-out scores,
+patches, trajectories or verifier logs were inspected; no new held-out seals
+exist. Earlier restricted-budget results remain separate.
+
+Verification regenerated all three reports without grading, matched 2,340 frozen
+input hashes, checked three identical model manifests against all eleven current
+model files, and confirmed empty recorded working-tree patches and original
+source revision `e891e37f3c6dc27756211c06b73c02c2a319fdb5` for all three attempts.
+The continuation documentation revision is `0be6ffa`; it did not launch a model
+attempt. All inspected benchmark/controller PIDs had exited. Free space was
+3.7 GiB at diagnosis; disk pressure was not the reported failure this time.
+
+The original low-disk event and continuation event remain preserved locally,
+alongside raw reports and verification evidence. No process was killed or
+restarted, no model attempt rerun, and no later model attempt launched. No
+training ran or is authorized. A future continuation must explicitly select the
+existing Ruby/Bundler runtime and preserve the three completed attempts; this
+failure callback does not authorize a new launch or retry.
+
+## Interruption (2026-10-21)
+
+The coordinator emitted a failure at 19:51:20 UTC: free disk fell below
+1 GiB (1,010,380,800 bytes observed). It exited without killing its active
+child. A subsequent host check found only 145 MiB free; by 19:53:10 UTC this
+had recovered to 5.5 GiB. The transient capacity drop's cause is not established.
+macOS reported 12,473 MiB swap in use. The three run directories total about
+40 MiB; Docker reported 1.85 GB images, 1.683 GB build cache and an active
+11.27 MB container. These measurements do not establish which allocation
+caused the event. Nothing was deleted or pruned.
+
+| Development task | Harness outcome / agent status | Reward | Credit | Steps | Wall seconds |
+| --- | --- | --- | --- | --- | --- |
+| at-announce-once | completed (scored) / format_error; three consecutive responses without a valid bash tool call; no submission | 0.0 | 0.0 | 19 | 893.9 |
+| at-compact-positions | completed (scored) / submitted | 1.0 | 0.10 | 32 | 1120.5 |
+| at-tenant-isolation | active at diagnosis; no final score reported | pending | pending | pending | pending |
+
+These attempts used 90 minutes / 400 steps / 300 seconds per command with
+unchanged local token caps. Neither completed attempt exhausted the time or
+step allowance. Announcement had three output-length-truncated responses;
+compaction had none. No transport errors, expired, pending or late responses
+were present in either completed report. Controls passed for all three started
+tasks. Do not treat the incomplete batch as eleven development outcomes or a
+nineteen-task aggregate.
+
+The other eight development tasks and all eight held-out tasks remain not run.
+There are no new held-out evidence seals to verify. No held-out scores,
+trajectories, patches or verifier logs were inspected. Previous held-out results
+remain sealed and separate.
+
+Verification matched all 780 frozen input hashes per started run (2,340 checks),
+all eleven model-file hashes per run, empty recorded working-tree patches and
+source revision `e891e37f3c6dc27756211c06b73c02c2a319fdb5`. The existing report
+command regenerated both completed development summaries without regrading.
+Raw results and the verification record remain ignored and local.
+
+At diagnosis, the tenant-isolation harness and MLX worker were still running;
+the supervisor had exited. Its final outcome remains unresolved. No process
+was killed or restarted, no task rerun, and no later task launched. The disk
+recovery does not restart the batch. No training is authorized. Further action
+requires reviewing capacity and the active attempt's eventual original result;
+this checkpoint does not authorize restarting the coordinator or new attempts.
+
+## Earlier three-task checkpoint
 
 All three planned official model attempts finished on 2026-10-20, with one
 fresh attempt per task. No training run has occurred.
