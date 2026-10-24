@@ -27,6 +27,8 @@ The 90-minute / 400-step / 300-second-command profile retained the local
 held-out seals verified. No task was rerun or regraded, and no training ran.
 See the [complete development results](docs/results.md#completed-nineteen-task-baseline-2026-10-23)
 and [protocol and retained history](docs/official-limits-comparison-2026-10-20.md).
+The [failure audit](docs/qwen-baseline-failure-analysis-2026-10-24.md) found
+a severe inference bottleneck alongside token limits and model repetition.
 
 ## Run the official baseline
 

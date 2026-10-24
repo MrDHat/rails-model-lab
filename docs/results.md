@@ -2,6 +2,11 @@
 
 ## Completed nineteen-task baseline (2026-10-23)
 
+The [development failure audit](qwen-baseline-failure-analysis-2026-10-24.md)
+found 96.99% of wall time spent in model generation, repeated full-context
+processing, output/context cap failures and model loops. These results
+measure this local setup; they do not isolate Rails coding capability.
+
 All nineteen authorized tasks have been attempted once under this profile:
 eleven development attempts are reported below and eight held-out attempts
 are completed and sealed. The final event was emitted at 01:57:30 UTC
