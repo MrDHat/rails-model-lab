@@ -8,6 +8,11 @@ fi
 cd "$(dirname "$0")/.."
 bench="$PWD/vendor/ai-evals"
 task="${1:-at-announce-once}"
+profile="${LOCAL_EVAL_PROFILE:-restricted}"
+case "$profile" in
+  restricted|official-limits) ;;
+  *) echo "Unknown LOCAL_EVAL_PROFILE: $profile" >&2; exit 2 ;;
+esac
 benchmark_revision="$(cat benchmark-revision.txt)"
 model=mlx-community/Qwen3.5-4B-4bit
 revision=0e7ffd5c629ef7719d4cbc04069232580bfa9d9c
@@ -47,13 +52,17 @@ mkdir -p "$run_root/bench" "$LOCAL_RELAY_DIR"
 cp -R "$bench/apps" "$bench/docker" "$bench/tasks" "$run_root/bench/"
 bundle exec ruby -ryaml -e '
   config = YAML.load_file(ARGV.fetch(1))
+  limits = { "timeout" => "30m", "step_limit" => 32, "exec_timeout" => 60 }
+  if ARGV.fetch(3) == "official-limits"
+    limits = config.fetch("agent").slice("timeout", "step_limit", "exec_timeout")
+    raise "Incomplete upstream limits" unless limits.size == 3
+  end
   config["agent"] = {
     "name" => "miniswen", "model" => "ollama/" + ARGV.fetch(2),
-    "timeout" => "30m", "step_limit" => 32, "exec_timeout" => 60,
     "max_output_tokens" => 2048
-  }
+  }.merge(limits)
   File.write(ARGV.fetch(0), YAML.dump(config))
-' "$run_root/bench/bench.yml" "$bench/bench.yml" "$model"
+' "$run_root/bench/bench.yml" "$bench/bench.yml" "$model" "$profile"
 python3 - "$run_root" "$bench" "$task" "$model_path" <<'PYTHON'
 import hashlib,json,sys
 from pathlib import Path
