@@ -1,6 +1,6 @@
 # Qwen inference cost options — 2026-10-29
 
-The approximately $268 scenario describes the old serial deployment, not an optimized cost floor. Several avoidable serialization points exist. There is not yet a measured speedup or evidence that the complete 135-attempt baseline fits the remaining free credit. This research used source inspection and public documentation only: no GPU, benchmark attempt, hidden evidence, credential file or paid service was accessed.
+The approximately $268 scenario describes the old serial deployment, not an optimized cost floor. Several avoidable serialization points exist. Initial research used source inspection and public documentation. A subsequently authorized synthetic GPU probe measured a batching speedup, recorded below; it does not establish that the complete 135-attempt baseline fits the remaining free credit. No scored benchmark attempt or hidden evidence was used in this cost probe.
 
 ## Concrete starting point
 
@@ -55,3 +55,21 @@ The probe reuses the existing private vLLM 0.32.0 image and verifies all 12 orig
 An 840-second remote engine watchdog, 900-second Modal function timeout, zero configured retries, two-second idle scale-down and 1200-second local deadline bound the test independently of Codex. The known A10/CPU/RAM resource rate implies about $0.33 for 900 execution seconds, excluding startup/image overhead; the operational allowance is under $1 of free credit, not a paid purchase. App-context exit stops the ephemeral app, including on client disconnection. Completion/failure queues one direct callback; there is no scheduled status polling. Existing app records prevent a silent second invocation.
 
 This measures the vLLM engine directly over sandbox loopback, so that requests can actually overlap. It does not claim to have validated simultaneous full Rails agents or the production bridge/Modal input path. A winning engine configuration still needs isolated harness integration and latency checks before any new scored attempt. Raw synthetic results, event status, model hashes and logs are retained in `runs/qwen-cost-probe-20261029/`; no cost reduction is claimed until those measurements return. L4 comparison is not included in this initial probe.
+
+## Measured synthetic results
+
+The probe finished with status `partial_or_failed`: all three eager-mode cases completed, while CUDA graph mode failed before readiness. Each case processed four requests with 8,222 prompt tokens and exactly 512 output tokens per request. The eager native bash-tool parsing gate passed. The returned source hash matches the launched source, and all 12 model hashes match the original manifest.
+
+| Simultaneous requests | Aggregate output tokens/s | Four-request wall time | Mean request latency | Throughput vs serial | Compute/token reduction vs serial |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 23.08 | 88.73 s | 22.18 s | 1.00× | — |
+| 2 | 37.75 | 54.26 s | 27.09 s | 1.64× | 38.9% |
+| 4 | 69.51 | 29.46 s | 29.18 s | 3.01× | 66.8% |
+
+These savings apply to the measured inference intervals at the same resource rate. Four-way batching increased mean individual request latency by about 32%, even as aggregate throughput tripled. Each concurrency level was measured once over four requests; there are no confidence intervals, randomized order, long-context stress tests or coding-quality results. All measured outputs reached the forced length limit within reasoning; this is a throughput workload, not evidence of completed answers or successful Rails tasks. Real conversations, cache behavior, output lengths and agent tool gaps can change both throughput and task-time effects. The approximately $268 serial scenario cannot simply be divided by three and presented as a forecast.
+
+CUDA graph mode failed in FlashInfer sampling warmup with `Could not find nvcc and default cuda_home='/usr/local/cuda' doesn't exist`. This is an image/toolchain failure, not a measured CUDA graph slowdown, model failure or demonstrated memory shortage. No graph throughput or graph tool-gate result exists. No retry was launched. A separately bounded follow-up would need the CUDA build toolchain or compatible prebuilt sampling kernels before comparing graph performance.
+
+Total remote function elapsed time was 546.56 seconds, including both mode startups and the failed graph startup. At the declared resource rate this is approximately **$0.20**, excluding platform startup/teardown or other billing overhead; it is not a reconciled invoice. Modal app `ap-xm9WQWUcu3Vzcq9Imx6ReU` was verified `stopped`, with zero tasks, stopped at 2026-10-29 07:51:52 UTC. Existing $0 paid-spending and workspace budget controls were not changed. No scored benchmark task started.
+
+Four-way eager batching is now a measured candidate. The next integration gate is simultaneous isolated synthetic agents through the actual installed-adapter/bridge/Modal route, retaining individual task clocks and model settings. Affordability of the complete 135-attempt comparison remains unproven.
