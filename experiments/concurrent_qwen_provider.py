@@ -9,8 +9,19 @@ import modal
 
 MODEL = "Qwen/Qwen3.5-4B"
 REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
-image = modal.Image.from_id("im-gB2tqSC2KhUzGQ7X4dp6q4").add_local_file(__file__, "/root/concurrent-qwen-provider.py")
+image = (modal.Image.from_id("im-gB2tqSC2KhUzGQ7X4dp6q4")
+         .env({"PYTHONPATH": "/root"})
+         .add_local_file(__file__, "/root/concurrent_qwen_provider.py"))
 app = modal.App("rails-qwen-concurrent-synthetic", include_source=False)
+
+
+@app.function(image=image, cpu=(0.25, 0.25), memory=(512, 512),
+              max_containers=1, scaledown_window=2, timeout=30, startup_timeout=30, retries=0)
+def packaging_check():
+    # This CPU-only function must import this same module before it can run.
+    return {"module": __name__, "file": __file__,
+            "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "gpu_requested": False}
 
 
 @app.cls(image=image, gpu="A10", cpu=(2, 2), memory=(16384, 16384),
@@ -69,7 +80,7 @@ class Qwen:
     @modal.method()
     def metadata(self):
         return {"model": MODEL, "revision": REVISION, "hashes": self.manifest,
-                "source_sha256": hashlib.sha256(Path("/root/concurrent-qwen-provider.py").read_bytes()).hexdigest(),
+                "source_sha256": hashlib.sha256(Path("/root/concurrent_qwen_provider.py").read_bytes()).hexdigest(),
                 "container": os.environ.get("MODAL_TASK_ID"), "max_inputs": 4,
                 "max_sequences": 4, "watchdog_seconds": 600}
 
