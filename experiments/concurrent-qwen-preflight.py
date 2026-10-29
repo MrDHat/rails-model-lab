@@ -17,6 +17,9 @@ ROOT = REPO / "runs/concurrent-qwen-preflight-20261029-packaging-fix"
 
 
 def main():
+    for name in ("SYNTHETIC_IMAGE", "CODEX_NOTIFY_THREAD_ID"):
+        if not os.environ.get(name):
+            raise ValueError("Required private configuration missing: " + name)
     ROOT.mkdir(parents=True, exist_ok=True)
     with (ROOT / "started.json").open("x") as stream:
         json.dump({"started_at": time.time(), "local_deadline_seconds": 900,
