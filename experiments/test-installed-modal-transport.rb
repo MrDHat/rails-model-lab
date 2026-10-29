@@ -1,16 +1,20 @@
 # frozen_string_literal: true
 
 # Synthetic only. Exercises the real installed adapter and command jail without
-# GPU inference, task instructions, grading, public ports, or Modal credentials.
+# benchmark instructions, grading, public ports, or Modal credentials.
+# Real Qwen is used only when explicitly selected by the bounded local runner.
 require_relative "installed-modal-transport"
 require "lemans/environments/docker"
 require "socket"
 require "tmpdir"
 require "ostruct"
 
-server = TCPServer.new("127.0.0.1", 0)
-ENV["GPUSTACK_API_BASE"] = "http://127.0.0.1:#{server.addr[1]}/v1"
-ENV["MODAL_BRIDGE_TOKEN"] = SecureRandom.hex(32)
+external = ENV["SYNTHETIC_BRIDGE_BASE"]
+real_qwen = ENV["SYNTHETIC_REAL_QWEN"] == "1"
+raise "Real Qwen requires an external private bridge" if real_qwen && !external
+server = TCPServer.new("127.0.0.1", 0) unless external
+ENV["GPUSTACK_API_BASE"] = external || "http://127.0.0.1:#{server.addr[1]}/v1"
+ENV["MODAL_BRIDGE_TOKEN"] = SecureRandom.hex(32) unless external
 RubyLLM.configure { |config| config.gpustack_api_base = ENV.fetch("GPUSTACK_API_BASE") }
 requests = []
 fake = Thread.new do
@@ -34,33 +38,47 @@ fake = Thread.new do
     client.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: #{body.bytesize}\r\nConnection: close\r\n\r\n#{body}")
     client.close
   end
-end
-fake.report_on_exception = false
+end unless external
+fake.report_on_exception = false if fake
 
 settings = Lemans::Config::Environment.new
 environment = Lemans::Environments::Docker.new(
-  image: Lemans::Config::ImageSpec.registry(ENV.fetch("SYNTHETIC_IMAGE", "lemans-a437e71aa43bc751abd5bed6d6741ff8:latest")),
+  image: Lemans::Config::ImageSpec.registry(ENV.fetch("SYNTHETIC_IMAGE")),
   resources: settings.resources, network: Lemans::Config::NetworkPolicy.new(mode: "public"))
 begin
   environment.start
   environment.exec!("mkdir -p /synthetic && gem install miniswen -v #{Miniswen::VERSION} --no-document", timeout: 300)
   environment.switch_network_policy!(Lemans::Config::NetworkPolicy.new(mode: "allowlist", hosts: ["openrouter.ai", "api.z.ai"]))
   profile = Lemans::Config::Agent.new("miniswen-installed", "gpustack/Qwen/Qwen3.5-4B")
-  profile.timeout = 120
-  profile.step_limit = 2
+  profile.timeout = real_qwen ? 180 : 120
+  profile.step_limit = real_qwen ? 4 : 2
   profile.exec_timeout = 5
   agent = Lemans::Agents::MiniswenInstalled.new(profile:)
-  task = OpenStruct.new(instruction: "Synthetic transport check only.", environment: OpenStruct.new(workdir: "/synthetic"))
+  identity = ENV.fetch("SYNTHETIC_AGENT_ID", "single")
+  raise "Invalid synthetic identity" unless identity.match?(/\A[a-z0-9-]+\z/)
+  instruction = "Synthetic transport check only. isolated-agent-#{identity}"
+  if real_qwen
+    instruction += "\nUse bash to execute exactly: test -z \"$GPUSTACK_API_BASE\" && test -z \"$GPUSTACK_API_KEY\" && printf 'installed-check-#{identity}' > isolation.txt && cat isolation.txt\nThen submit by executing exactly: echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\nDo not perform any other work."
+  end
+  task = OpenStruct.new(instruction:, environment: OpenStruct.new(workdir: "/synthetic"))
   result = agent.run(task, environment)
+  if real_qwen
+    File.write(ENV.fetch("SYNTHETIC_RESULT_PATH"), JSON.generate(outcome: result.outcome, error: result.error, raw_result: result.raw_result))
+  end
   raise result.error if result.error?
   raw = JSON.parse(result.raw_result)
-  raise "Not submitted" unless raw.fetch("status") == "submitted" && raw.fetch("steps") == 2
-  raise "Tool observation missing" unless requests.last.fetch("messages").any? { |m| m["role"] == "tool" && m["content"].to_s.include?("installed-check") }
+  raise "Not submitted" unless raw.fetch("status") == "submitted" && (real_qwen || raw.fetch("steps") == 2)
+  if external
+    observed = environment.exec!("cat /synthetic/isolation.txt", timeout: 5)
+    raise "Sandbox marker missing" unless observed.output.strip == "installed-check-#{identity}"
+  else
+    raise "Tool observation missing" unless requests.last.fetch("messages").any? { |m| m["role"] == "tool" && m["content"].to_s.include?("installed-check") }
+  end
   ports = JSON.parse(`docker inspect #{environment.container}`).first.fetch("NetworkSettings").fetch("Ports")
   raise "Unexpected published port" unless ports.nil? || ports.values.all?(&:nil?)
-  puts JSON.generate(synthetic: "passed", adapter: agent.name, jail: true, steps: raw["steps"], requests: requests.size, published_ports: 0, gpu_calls: 0)
+  puts JSON.generate(synthetic: "passed", adapter: agent.name, jail: true, steps: raw["steps"], requests: external ? nil : requests.size, published_ports: 0, gpu_calls: real_qwen ? nil : 0)
 ensure
   environment.stop
-  server.close
-  fake.kill
+  server&.close
+  fake&.kill
 end
