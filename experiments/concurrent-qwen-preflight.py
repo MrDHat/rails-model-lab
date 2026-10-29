@@ -9,10 +9,10 @@ import signal
 import subprocess
 import time
 import modal
-from concurrent_qwen_provider import app, Qwen
+from concurrent_qwen_provider import app, Qwen, packaging_check
 
 REPO = Path(__file__).resolve().parents[1]
-ROOT = REPO / "runs/concurrent-qwen-preflight-20261029"
+ROOT = REPO / "runs/concurrent-qwen-preflight-20261029-packaging-fix"
 
 
 def main():
@@ -44,8 +44,12 @@ def main():
     try:
         with app.run():
             (ROOT / "app.json").write_text(json.dumps({"app_id": app.app_id}))
+            packaging = packaging_check.spawn().get(timeout=60)
+            (ROOT / "packaging-check.json").write_text(json.dumps(packaging, indent=2))
+            assert packaging["module"] == "concurrent_qwen_provider", "Wrong imported module"
+            assert packaging["source_sha256"] == hashes["concurrent_qwen_provider.py"], "Packaged source changed"
             model = Qwen()
-            metadata = model.metadata.remote()
+            metadata = model.metadata.spawn().get(timeout=300)
             (ROOT / "metadata.json").write_text(json.dumps(metadata, indent=2))
             original = json.loads((REPO / "runs/full-baseline-20261026/remote-metadata.json").read_text())
             assert metadata["hashes"] == original["hashes"], "Original model manifest changed"
