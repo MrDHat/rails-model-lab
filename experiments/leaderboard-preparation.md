@@ -10,15 +10,20 @@ Use Ruby 3.4 and Bundler 2.6.2, with Docker running. From the repository root:
 BUNDLE_GEMFILE=$PWD/experiments/leaderboard.Gemfile bundle install
 python3 experiments/test-leaderboard-report.py
 BUNDLE_GEMFILE=$PWD/experiments/leaderboard.Gemfile bundle exec ruby experiments/test-installed-modal-transport.rb
+python3 experiments/test-concurrent-modal-transport.py
 ```
 
 The Docker integration test uses an already cached `lemans-a437e71aa43bc751abd5bed6d6741ff8:latest` image and installs the official Miniswen gem in an ephemeral container. The image must exist locally; it is a test fixture, not a frozen benchmark environment. The test sends only synthetic instructions to a fake provider. It checks actual installed-agent tool calls, the jail, inference environment isolation and zero published ports, then removes its container. Gem installation needs the existing task setup network access; no GPU is called.
+
+The concurrent integration starts four separate upstream installed agents and Docker sandboxes through `concurrent-modal-bridge.py`. A fake provider holds their first requests at a four-party barrier: a serial bridge cannot pass. Each agent writes and reads an identity marker at the same sandbox-relative filename; both provider observations and sandbox files must match that agent. Eight request/response evidence pairs must remain separate. Admission checks also verify authentication, frozen settings, an expired deadline and immediate overload rejection. This test passed with four overlapping provider calls, four isolated markers, eight completions, zero published ports and zero GPU calls. It uses the real installed adapter and host bridge, but replaces Modal RPC/model inference with a fake callable; it does not establish live Modal concurrency or long-context performance.
 
 ## Transport boundary
 
 `installed-modal-transport.rb` prepends only the upstream installed adapter. A sandbox-loopback HTTP listener outside the command jail forwards JSON requests over `docker exec` stdio to the existing host-loopback bridge. Modal credentials remain on the host. The sandbox receives only a disposable relay token; task commands do not inherit inference environment variables. Original task command policies and network allowlists stay in place. The provider bootstrap disables retries and declares a 1560-second request timeout.
 
 This adapter is not a new agent loop. Preserve each task's selected host/installed adapter and original limits; never globally override the agent. Real Modal/Qwen compatibility with this installed transport still needs a synthetic preflight before scored attempts. Loading the Ruby adapter alone does not provide a Modal bridge or launch controller.
+
+`concurrent-modal-bridge.py` is a separate prospective bridge, leaving the original frozen serial bridge unchanged. It accepts an already-owned provider handle with `complete.remote(payload)`, binds only to host loopback and writes separate evidence files per request. It admits at most four inference calls and rejects overflow immediately, without retries or hidden queue time. Deadline admission does not cancel an in-flight provider call; independent provider/app shutdown limits remain required. Each agent's sandbox relay stays sequential because its own agent loop is sequential; separate relays overlap across agents. The live provider still needs concurrent Modal inputs, four vLLM sequences, an independent budget stop and real-provider validation before benchmark use.
 
 ## Reporting
 
