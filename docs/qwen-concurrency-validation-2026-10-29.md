@@ -11,3 +11,5 @@ The planned Rails comparison still contains 135 distinct unstarted attempts acro
 Remaining launch gates are sufficient free compute, long-context capacity, validation of the separate host-adapter path, final environment provenance and a declared policy for infrastructure-invalid attempts. The current tests do not prove the complete comparison fits the free-credit allowance. Paid spending remains capped at zero; passing this test does not authorize an automatic benchmark launch.
 
 Public runtime templates require private image selection and callback destination through environment variables. Exact executed source snapshots, hashes, application identities and run evidence remain local; the public templates omit deployment-specific values.
+
+Before running synthetic fixtures, supply `SYNTHETIC_IMAGE` for an appropriate local Docker image. The private GPU preflight additionally requires `QWEN_PREFLIGHT_IMAGE_ID` and `CODEX_NOTIFY_THREAD_ID`; missing configuration fails before launch. These values and provider credentials do not belong in source control.
