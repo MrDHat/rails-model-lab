@@ -73,3 +73,9 @@ CUDA graph mode failed in FlashInfer sampling warmup with `Could not find nvcc a
 Total remote function elapsed time was 546.56 seconds, including both mode startups and the failed graph startup. At the declared resource rate this is approximately **$0.20**, excluding platform startup/teardown or other billing overhead; it is not a reconciled invoice. Modal app `ap-xm9WQWUcu3Vzcq9Imx6ReU` was verified `stopped`, with zero tasks, stopped at 2026-10-29 07:51:52 UTC. Existing $0 paid-spending and workspace budget controls were not changed. No scored benchmark task started.
 
 Four-way eager batching is now a measured candidate. The next integration gate is simultaneous isolated synthetic agents through the actual installed-adapter/bridge/Modal route, retaining individual task clocks and model settings. Affordability of the complete 135-attempt comparison remains unproven.
+
+## Concurrent harness transport checkpoint
+
+A separate prospective threaded loopback bridge and four-agent Docker integration now pass locally. Four upstream installed Miniswen agents reached a fake provider simultaneously through their independent sandbox stdio relays. Each submitted after two calls, wrote/read its own sandbox marker, and retained separate request/response evidence: eight pairs, no crossed observations, no published ports and no GPU calls. Authentication, fixed generation-setting precedence, expired-deadline rejection and immediate concurrency-overflow rejection also passed. The original frozen serial bridge was not changed.
+
+This closes the local bridge/installed-agent serialization check. The Modal RPC method is still a synthetic callable in this integration; live concurrent Modal inputs and actual Qwen tool calls through this complete path remain unvalidated. No GPU work, scored task or training starts from these files. The next useful gate is one bounded synthetic real-provider integration, not a full benchmark launch.
