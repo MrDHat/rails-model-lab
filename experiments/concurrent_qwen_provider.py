@@ -9,8 +9,9 @@ import modal
 
 MODEL = "Qwen/Qwen3.5-4B"
 REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
-image = (modal.Image.from_id(os.environ["QWEN_PREFLIGHT_IMAGE_ID"])
-         .env({"PYTHONPATH": "/root"})
+base_id = os.environ["QWEN_PREFLIGHT_IMAGE_ID"]
+image = (modal.Image.from_id(base_id)
+         .env({"PYTHONPATH": "/root", "QWEN_PREFLIGHT_IMAGE_ID": base_id})
          .add_local_file(__file__, "/root/concurrent_qwen_provider.py"))
 app = modal.App("rails-qwen-concurrent-synthetic", include_source=False)
 
