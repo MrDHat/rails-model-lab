@@ -25,6 +25,14 @@ This adapter is not a new agent loop. Preserve each task's selected host/install
 
 `concurrent-modal-bridge.py` is a separate prospective bridge, leaving the original frozen serial bridge unchanged. It accepts an already-owned provider handle with `complete.remote(payload)`, binds only to host loopback and writes separate evidence files per request. It admits at most four inference calls and rejects overflow immediately, without retries or hidden queue time. Deadline admission does not cancel an in-flight provider call; independent provider/app shutdown limits remain required. Each agent's sandbox relay stays sequential because its own agent loop is sequential; separate relays overlap across agents. The live provider still needs concurrent Modal inputs, four vLLM sequences, an independent budget stop and real-provider validation before benchmark use.
 
+## Bounded real-provider synthetic integration
+
+The explicitly authorized `concurrent-qwen-preflight.py` was launched separately on 2026-10-29. It sends four invented two-command marker tasks through the actual installed adapters, independent Docker relays, concurrent host bridge and private Modal RPC to Qwen. The fixture permits at most four steps and 180 seconds per agent; these are synthetic diagnostic limits, not changes to Rails task limits. Generation settings retain thinking, temperature .6, top-p .95, top-k 20, seed 42 and the original 32,768 output cap. All source inputs/settings are frozen locally before the first call. The private provider recomputes the original model hashes and the client verifies its source/model manifest before starting agents.
+
+The new provider enables four concurrent Modal inputs and four vLLM sequences on a single A10, using the previously validated eager image. No public endpoint, persistent volume or benchmark material is used. Independent bounds are a 600-second remote container watchdog, 210-second method timeout, 300-second startup timeout and 900-second local deadline, with zero configured retries. A long idle window avoids unintended cold starts between metadata validation and agent setup; the watchdog includes idle time and app-context exit stops the app. This single-use preflight is bounded to an operational allowance under $1 of free credit; the existing $0 paid-spend and $25 workspace ceiling remain mandatory.
+
+Original per-agent results, HTTP request/response evidence, remote timing/container identities, model metadata and event delivery stay under `runs/concurrent-qwen-preflight-20261029/`. A direct callback reports completion or failure; no scheduled or in-context status polling is needed. A failed preflight is retained, never silently rerun. This launch is not a passing result or a scored-benchmark authorization.
+
 ## Reporting
 
 ```sh
