@@ -8,9 +8,10 @@ require "socket"
 require "tmpdir"
 require "ostruct"
 
-server = TCPServer.new("127.0.0.1", 0)
-ENV["GPUSTACK_API_BASE"] = "http://127.0.0.1:#{server.addr[1]}/v1"
-ENV["MODAL_BRIDGE_TOKEN"] = SecureRandom.hex(32)
+external = ENV["SYNTHETIC_BRIDGE_BASE"]
+server = TCPServer.new("127.0.0.1", 0) unless external
+ENV["GPUSTACK_API_BASE"] = external || "http://127.0.0.1:#{server.addr[1]}/v1"
+ENV["MODAL_BRIDGE_TOKEN"] = SecureRandom.hex(32) unless external
 RubyLLM.configure { |config| config.gpustack_api_base = ENV.fetch("GPUSTACK_API_BASE") }
 requests = []
 fake = Thread.new do
@@ -34,8 +35,8 @@ fake = Thread.new do
     client.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: #{body.bytesize}\r\nConnection: close\r\n\r\n#{body}")
     client.close
   end
-end
-fake.report_on_exception = false
+end unless external
+fake.report_on_exception = false if fake
 
 settings = Lemans::Config::Environment.new
 environment = Lemans::Environments::Docker.new(
@@ -50,17 +51,24 @@ begin
   profile.step_limit = 2
   profile.exec_timeout = 5
   agent = Lemans::Agents::MiniswenInstalled.new(profile:)
-  task = OpenStruct.new(instruction: "Synthetic transport check only.", environment: OpenStruct.new(workdir: "/synthetic"))
+  identity = ENV.fetch("SYNTHETIC_AGENT_ID", "single")
+  raise "Invalid synthetic identity" unless identity.match?(/\A[a-z0-9-]+\z/)
+  task = OpenStruct.new(instruction: "Synthetic transport check only. isolated-agent-#{identity}", environment: OpenStruct.new(workdir: "/synthetic"))
   result = agent.run(task, environment)
   raise result.error if result.error?
   raw = JSON.parse(result.raw_result)
   raise "Not submitted" unless raw.fetch("status") == "submitted" && raw.fetch("steps") == 2
-  raise "Tool observation missing" unless requests.last.fetch("messages").any? { |m| m["role"] == "tool" && m["content"].to_s.include?("installed-check") }
+  if external
+    observed = environment.exec!("cat /synthetic/isolation.txt", timeout: 5)
+    raise "Sandbox marker missing" unless observed.output.strip == "installed-check-#{identity}"
+  else
+    raise "Tool observation missing" unless requests.last.fetch("messages").any? { |m| m["role"] == "tool" && m["content"].to_s.include?("installed-check") }
+  end
   ports = JSON.parse(`docker inspect #{environment.container}`).first.fetch("NetworkSettings").fetch("Ports")
   raise "Unexpected published port" unless ports.nil? || ports.values.all?(&:nil?)
   puts JSON.generate(synthetic: "passed", adapter: agent.name, jail: true, steps: raw["steps"], requests: requests.size, published_ports: 0, gpu_calls: 0)
 ensure
   environment.stop
-  server.close
-  fake.kill
+  server&.close
+  fake&.kill
 end
