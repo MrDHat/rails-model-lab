@@ -33,6 +33,12 @@ The new provider enables four concurrent Modal inputs and four vLLM sequences on
 
 Original per-agent results, HTTP request/response evidence, remote timing/container identities, model metadata and event delivery stay under `runs/concurrent-qwen-preflight-20261029/`. A direct callback reports completion or failure; no scheduled or in-context status polling is needed. A failed preflight is retained, never silently rerun. This launch is not a passing result or a scored-benchmark authorization.
 
+### First live integration: import failure retained
+
+The original attempt failed before model startup or agent creation. The source was uploaded as `/root/concurrent-qwen-provider.py`, but Modal imports `concurrent_qwen_provider`; `include_source=False` meant no importable module was supplied. Modal repeatedly failed container imports despite method retries being zero. The remote watchdog never started because its class entry hook was never reached. The independent 900-second local deadline stopped app `ap-rq5zqKbgCYDO09SNwk5EqV` at 2026-10-29 17:35:08 UTC. It was verified stopped with zero tasks; Docker was empty. No metadata, model-hash verification, inference response or per-agent outcome exists. This is an infrastructure failure, not a Qwen failure or passing integration. All seven frozen local source hashes matched; copies, logs and event remain in that original run directory. Actual billed usage has not been reconciled.
+
+The explicitly disclosed corrected attempt uses a new `runs/concurrent-qwen-preflight-20261029-packaging-fix/` directory, never overwriting or reclassifying the first attempt. The module now has its correct Python filename and explicit `/root` import path. A CPU-only function must import that same module and return the expected source hash within a 60-second call wait before any GPU method is invoked. GPU startup metadata then has a separate 300-second call wait. Existing app lifetime/model/generation/agent limits and spending controls remain in place. These guards address the observed import crash loop; local import success alone is not remote validation.
+
 ## Reporting
 
 ```sh
