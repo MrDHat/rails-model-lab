@@ -11,17 +11,17 @@ import modal
 from qwen_graph_context_probe import app, compiler_gate, measure, CASES
 
 REPO = Path(__file__).resolve().parents[1]
-ROOT = REPO / "runs/qwen-graph-context-probe-20261029"
+ROOT = REPO / "runs/qwen-graph-context-library-fix-20261030"
 
 
 def main():
     thread = os.environ["CODEX_NOTIFY_THREAD_ID"]
     ROOT.mkdir(parents=True, exist_ok=True)
     with (ROOT / "started.json").open("x") as stream:
-        json.dump({"started_at": time.time(), "synthetic_only": True, "local_deadline_seconds": 1500,
+        json.dump({"started_at": time.time(), "synthetic_only": True, "local_deadline_seconds": 1800,
                    "remote_watchdog_seconds": 1140, "remote_timeout_seconds": 1200,
                    "maximum_gpu_containers": 1, "cases_per_mode": CASES}, stream, indent=2)
-    sources = ["qwen_graph_context_probe.py", "run-qwen-graph-context-probe.py"]
+    sources = ["qwen_graph_context_probe.py", "run-qwen-graph-context-probe.py", "check-qwen-cuda-toolchain.py", "compile-qwen-sampling.py"]
     hashes = {name: hashlib.sha256((REPO / "experiments" / name).read_bytes()).hexdigest() for name in sources}
     frozen = ROOT / "frozen-source"
     frozen.mkdir()
@@ -30,18 +30,19 @@ def main():
     (ROOT / "frozen-inputs.json").write_text(json.dumps({"source_hashes": hashes}, indent=2))
 
     def expire(*_):
-        raise TimeoutError("Independent 1500-second local probe deadline")
+        raise TimeoutError("Independent 1800-second local probe deadline")
 
     signal.signal(signal.SIGALRM, expire)
-    signal.alarm(1500)
+    signal.alarm(1800)
     event = {"status": "failed", "synthetic_only": True}
     try:
         with app.run():
             (ROOT / "app.json").write_text(json.dumps({"app_id": app.app_id}))
-            gate = compiler_gate.spawn().get(timeout=90)
+            gate = compiler_gate.spawn().get(timeout=270)
             (ROOT / "compiler-gate.json").write_text(json.dumps(gate, indent=2))
             assert gate["cuda_compile_passed"] and not gate["gpu_requested"]
             assert gate["source_sha256"] == hashes[sources[0]]
+            assert gate.get("flashinfer_sampling_objects_passed"), "CPU FlashInfer object compilation failed; no GPU requested"
             expected = json.loads((REPO / "runs/full-baseline-20261026/remote-metadata.json").read_text())["hashes"]
             result = measure.spawn(expected).get(timeout=1230)
             (ROOT / "result.json").write_text(json.dumps(result, indent=2))
