@@ -6,13 +6,16 @@ from pathlib import Path
 import signal
 import time
 import modal
+from qwen_cuda_environment import configure_cuda
 
 MODEL = "Qwen/Qwen3.5-4B"
 REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
 base_id = os.environ["QWEN_PREFLIGHT_IMAGE_ID"]
 image = (modal.Image.from_id(base_id)
          .env({"PYTHONPATH": "/root", "QWEN_PREFLIGHT_IMAGE_ID": base_id})
-         .add_local_file(__file__, "/root/concurrent_qwen_provider.py"))
+         .add_local_file(__file__, "/root/concurrent_qwen_provider.py")
+         .add_local_file(str(Path(__file__).with_name("qwen_cuda_environment.py")),
+                         "/root/qwen_cuda_environment.py"))
 app = modal.App("rails-qwen-concurrent-synthetic", include_source=False)
 
 
@@ -22,11 +25,12 @@ def packaging_check():
     # This CPU-only function must import this same module before it can run.
     return {"module": __name__, "file": __file__,
             "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "toolchain": configure_cuda(),
             "gpu_requested": False}
 
 
 @app.cls(image=image, gpu="A10", cpu=(2, 2), memory=(16384, 16384),
-         max_containers=1, scaledown_window=600, timeout=210, startup_timeout=300, retries=0)
+         max_containers=1, scaledown_window=600, timeout=210, startup_timeout=420, retries=0)
 @modal.concurrent(max_inputs=4, target_inputs=4)
 class Qwen:
     @modal.enter()
@@ -40,6 +44,7 @@ class Qwen:
         self.timer = threading.Timer(600, self.expire)
         self.timer.daemon = True
         self.timer.start()
+        self.toolchain = configure_cuda(require_driver=True)
         self.manifest = json.loads(Path("/model-manifest.json").read_text())
         model_path = Path("/model-path").read_text()
         for name, expected in self.manifest.items():
@@ -52,9 +57,9 @@ class Qwen:
             "--max-model-len", "262144", "--max-num-seqs", "4",
             "--gpu-memory-utilization", "0.85", "--language-model-only",
             "--enable-auto-tool-choice", "--tool-call-parser", "qwen3_coder",
-            "--reasoning-parser", "qwen3", "--enable-prefix-caching", "--enforce-eager",
+            "--reasoning-parser", "qwen3", "--enable-prefix-caching",
             "--generation-config", "vllm", "--no-enable-log-requests"], start_new_session=True)
-        while time.monotonic() < min(self.deadline, self.started + 270):
+        while time.monotonic() < min(self.deadline, self.started + 390):
             if self.proc.poll() is not None:
                 raise RuntimeError("Engine exited during startup")
             try:
@@ -82,6 +87,7 @@ class Qwen:
     def metadata(self):
         return {"model": MODEL, "revision": REVISION, "hashes": self.manifest,
                 "source_sha256": hashlib.sha256(Path("/root/concurrent_qwen_provider.py").read_bytes()).hexdigest(),
+                "toolchain": self.toolchain, "cuda_graphs_requested": True,
                 "container": os.environ.get("MODAL_TASK_ID"), "max_inputs": 4,
                 "max_sequences": 4, "watchdog_seconds": 600}
 
