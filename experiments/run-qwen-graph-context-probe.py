@@ -11,7 +11,7 @@ import modal
 from qwen_graph_context_probe import app, compiler_gate, measure, CASES
 
 REPO = Path(__file__).resolve().parents[1]
-ROOT = REPO / "runs/qwen-graph-context-aligned-20261030"
+ROOT = REPO / "runs/qwen-graph-context-library-fix-20261030"
 
 
 def main():
@@ -21,7 +21,7 @@ def main():
         json.dump({"started_at": time.time(), "synthetic_only": True, "local_deadline_seconds": 1800,
                    "remote_watchdog_seconds": 1140, "remote_timeout_seconds": 1200,
                    "maximum_gpu_containers": 1, "cases_per_mode": CASES}, stream, indent=2)
-    sources = ["qwen_graph_context_probe.py", "run-qwen-graph-context-probe.py", "check-qwen-cuda-toolchain.py"]
+    sources = ["qwen_graph_context_probe.py", "run-qwen-graph-context-probe.py", "check-qwen-cuda-toolchain.py", "compile-qwen-sampling.py"]
     hashes = {name: hashlib.sha256((REPO / "experiments" / name).read_bytes()).hexdigest() for name in sources}
     frozen = ROOT / "frozen-source"
     frozen.mkdir()
@@ -42,7 +42,7 @@ def main():
             (ROOT / "compiler-gate.json").write_text(json.dumps(gate, indent=2))
             assert gate["cuda_compile_passed"] and not gate["gpu_requested"]
             assert gate["source_sha256"] == hashes[sources[0]]
-            assert gate.get("flashinfer_sampling_passed"), "CPU FlashInfer compilation failed; no GPU requested"
+            assert gate.get("flashinfer_sampling_objects_passed"), "CPU FlashInfer object compilation failed; no GPU requested"
             expected = json.loads((REPO / "runs/full-baseline-20261026/remote-metadata.json").read_text())["hashes"]
             result = measure.spawn(expected).get(timeout=1230)
             (ROOT / "result.json").write_text(json.dumps(result, indent=2))
