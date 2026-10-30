@@ -14,7 +14,9 @@ source_path = "/root/qwen_graph_context_probe.py"
 base_id = os.environ["QWEN_PREFLIGHT_IMAGE_ID"]
 image = (modal.Image.from_id(base_id)
          .env({"PYTHONPATH": "/root", "QWEN_PREFLIGHT_IMAGE_ID": base_id})
-         .add_local_file(__file__, source_path))
+         .add_local_file(__file__, source_path)
+         .add_local_file(str(Path(__file__).with_name("check-qwen-cuda-toolchain.py")),
+                         "/root/check-qwen-cuda-toolchain.py"))
 app = modal.App("qwen-graph-context-synthetic", include_source=False)
 CASES = [(8192, 1, 4), (8192, 4, 4), (32768, 1, 4),
          (32768, 4, 4), (65536, 1, 2), (65536, 2, 2)]
@@ -33,8 +35,8 @@ def configure_cuda():
             "source_sha256": hashlib.sha256(Path(source_path).read_bytes()).hexdigest()}
 
 
-@app.function(image=image, cpu=(1, 1), memory=(2048, 2048), max_containers=1,
-              timeout=60, startup_timeout=60, retries=0, scaledown_window=2)
+@app.function(image=image, cpu=(2, 2), memory=(8192, 8192), max_containers=1,
+              timeout=240, startup_timeout=60, retries=0, scaledown_window=2)
 def compiler_gate():
     import subprocess
     result = configure_cuda()
@@ -43,6 +45,19 @@ def compiler_gate():
     subprocess.run(["nvcc", "-arch=sm_86", "-cubin", str(path), "-o", "/tmp/synthetic-check.cubin"],
                    check=True, capture_output=True, text=True, timeout=45)
     result.update(cuda_compile_passed=True, gpu_requested=False)
+    compatibility = subprocess.run(["python", "/root/check-qwen-cuda-toolchain.py"],
+                                   capture_output=True, text=True, timeout=50)
+    result["compatibility"] = {"returncode": compatibility.returncode,
+                               "stdout": compatibility.stdout, "stderr": compatibility.stderr}
+    if compatibility.returncode:
+        return result
+    os.environ["FLASHINFER_CUDA_ARCH_LIST"] = "8.6"
+    sampling = subprocess.run(["python", "-c",
+        "from flashinfer.sampling import get_sampling_module; get_sampling_module(); print('sampling module loaded')"],
+        capture_output=True, text=True, timeout=170)
+    result["sampling"] = {"returncode": sampling.returncode,
+                          "stdout": sampling.stdout, "stderr": sampling.stderr}
+    result["flashinfer_sampling_passed"] = sampling.returncode == 0
     return result
 
 
