@@ -16,13 +16,15 @@ image = (modal.Image.from_id(base_id)
          .env({"PYTHONPATH": "/root", "QWEN_PREFLIGHT_IMAGE_ID": base_id})
          .add_local_file(__file__, source_path)
          .add_local_file(str(Path(__file__).with_name("check-qwen-cuda-toolchain.py")),
-                         "/root/check-qwen-cuda-toolchain.py"))
+                         "/root/check-qwen-cuda-toolchain.py")
+         .add_local_file(str(Path(__file__).with_name("compile-qwen-sampling.py")),
+                         "/root/compile-qwen-sampling.py"))
 app = modal.App("qwen-graph-context-synthetic", include_source=False)
 CASES = [(8192, 1, 4), (8192, 4, 4), (32768, 1, 4),
          (32768, 4, 4), (65536, 1, 2), (65536, 2, 2)]
 
 
-def configure_cuda():
+def configure_cuda(require_driver=False):
     import subprocess
     root = Path(sysconfig.get_paths()["purelib"]) / "nvidia/cu13"
     nvcc = root / "bin/nvcc"
@@ -31,7 +33,26 @@ def configure_cuda():
     os.environ["CUDA_HOME"] = str(root)
     os.environ["PATH"] = str(root / "bin") + os.pathsep + os.environ["PATH"]
     os.environ["MAX_JOBS"] = "2"
+    # CUDA wheels use lib/, while FlashInfer searches CUDA_HOME/lib64/.
+    # Supply linker names from real installed libraries, never a fake driver.
+    runtime = root / "lib/libcudart.so.13"
+    if not runtime.is_file():
+        raise RuntimeError("Installed CUDA runtime library missing")
+    link_dir = root / "lib64"
+    link_dir.mkdir(exist_ok=True)
+    runtime_link = link_dir / "libcudart.so"
+    if not runtime_link.exists():
+        runtime_link.symlink_to(runtime)
+    driver = next((path for directory in ["/usr/lib/x86_64-linux-gnu", "/usr/local/nvidia/lib64", "/usr/lib64", "/usr/local/nvidia/lib"]
+                   for path in [Path(directory) / "libcuda.so.1"] if path.is_file()), None)
+    if require_driver and driver is None:
+        raise RuntimeError("Real GPU driver library missing; engine not started")
+    if driver is not None and not (link_dir / "libcuda.so").exists():
+        (link_dir / "libcuda.so").symlink_to(driver.resolve())
+    for variable in ["LIBRARY_PATH", "LD_LIBRARY_PATH"]:
+        os.environ[variable] = str(link_dir) + os.pathsep + str(runtime.parent) + os.pathsep + os.environ.get(variable, "")
     return {"nvcc_version": subprocess.check_output([str(nvcc), "--version"], text=True),
+            "runtime_library_found": True, "real_driver_found": driver is not None,
             "source_sha256": hashlib.sha256(Path(source_path).read_bytes()).hexdigest()}
 
 
@@ -52,12 +73,11 @@ def compiler_gate():
     if compatibility.returncode:
         return result
     os.environ["FLASHINFER_CUDA_ARCH_LIST"] = "8.6"
-    sampling = subprocess.run(["python", "-c",
-        "from flashinfer.sampling import get_sampling_module; get_sampling_module(); print('sampling module loaded')"],
+    sampling = subprocess.run(["python", "/root/compile-qwen-sampling.py"],
         capture_output=True, text=True, timeout=170)
     result["sampling"] = {"returncode": sampling.returncode,
                           "stdout": sampling.stdout, "stderr": sampling.stderr}
-    result["flashinfer_sampling_passed"] = sampling.returncode == 0
+    result["flashinfer_sampling_objects_passed"] = sampling.returncode == 0
     return result
 
 
@@ -75,7 +95,7 @@ def measure(expected_hashes):
     report = {"synthetic_only": True, "model": MODEL, "revision": REVISION,
               "dtype": "bfloat16", "vllm": "0.32.0", "context_limit": 262144,
               "max_sequences": 4, "cases": [], "errors": [], "startup": [],
-              "toolchain": configure_cuda(), "watchdog_seconds": 1140,
+              "toolchain": configure_cuda(require_driver=True), "watchdog_seconds": 1140,
               "source_sha256": hashlib.sha256(Path(source_path).read_bytes()).hexdigest()}
     holder = {}
     expired = threading.Event()
