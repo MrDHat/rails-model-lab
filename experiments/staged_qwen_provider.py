@@ -11,15 +11,15 @@ from qwen_cuda_environment import configure_cuda
 MODEL = "Qwen/Qwen3.5-4B"
 REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
 base_id = os.environ["QWEN_BASELINE_IMAGE_ID"]
-image = (modal.Image.from_id(base_id)
-         .env({"PYTHONPATH": "/root", "QWEN_BASELINE_IMAGE_ID": base_id})
-         .add_local_file(__file__, "/root/staged_qwen_provider.py")
-         .add_local_file(str(Path(__file__).with_name("qwen_cuda_environment.py")),
-                         "/root/qwen_cuda_environment.py"))
 expires_at = float(os.environ["QWEN_BATCH_EXPIRES_AT"])
 if not 0 < expires_at - time.time() <= 86400:
     raise RuntimeError("Missing or invalid absolute batch deadline")
-image = image.env({"QWEN_BATCH_EXPIRES_AT": str(expires_at)})
+image = (modal.Image.from_id(base_id)
+         .env({"PYTHONPATH": "/root", "QWEN_BASELINE_IMAGE_ID": base_id,
+               "QWEN_BATCH_EXPIRES_AT": str(expires_at)})
+         .add_local_file(__file__, "/root/staged_qwen_provider.py")
+         .add_local_file(str(Path(__file__).with_name("qwen_cuda_environment.py")),
+                         "/root/qwen_cuda_environment.py"))
 app = modal.App("rails-qwen-staged-baseline", include_source=False)
 
 
