@@ -11,6 +11,7 @@ from pathlib import Path
 import secrets
 import shutil
 import subprocess
+import sys
 import time
 
 REPO = Path(__file__).resolve().parents[1]
@@ -33,6 +34,7 @@ def save(path, value):
 def load_module(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
