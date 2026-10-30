@@ -33,7 +33,7 @@ All five archived source hashes matched, remote provider/helper hashes matched, 
 
 No scored benchmark or training task has launched. The prospective comparison remains 135 distinct unstarted attempts over 46 tasks, with the original per-task allowances and three/two repetition schedule. Final benchmark environment/provenance, a declared infrastructure-failure policy, sufficient free compute and explicit scored-launch authorization remain gates. Raw run evidence, private deployment identifiers and detailed operational records stay local and out of model inputs/training.
 
-## Proposed free-credit staging policy — awaiting a scope decision
+## Selected free-credit staging route — launch approval pending
 
 The complete 135-attempt manifest was rechecked unchanged: 46 tasks, 43 with three attempts, the specified three multistep tasks with two, all unstarted, with 42 installed and four host task adapters. This audit does not freeze future task images or authorize a launch.
 
@@ -41,4 +41,4 @@ A free-only staged run would retain that complete manifest, the original task/se
 
 The workspace usage ceiling and zero net-spend limit remain unchanged. Dashboard estimates lag; a launcher needs its own conservative resource-time reservation and independent shutdown, not just a balance check or a future Codex response. The six-hundred-second synthetic watchdog is intentionally unsuitable for full benchmark task allowances and must not be reused unchanged for scored attempts.
 
-All attempted outcomes, including unscored infrastructure failures, must remain recorded. Do not replace them or infer a complete scored headline from incomplete coverage. Inference billing remains separate from the harness's local-provider zero cost. No scored launch, new probe or training is activated by this proposed policy. The pending choice is staged free-credit coverage, waiting for additional donated/free capacity, or explicitly reduced partial coverage.
+All attempted outcomes, including unscored infrastructure failures, must remain recorded. Do not replace them or infer a complete scored headline from incomplete coverage. Inference billing remains separate from the harness's local-provider zero cost. No scored launch, new probe or training is activated by this proposed policy. The user selected staged full coverage across free-credit cycles. The controller, admission tests and remaining limitations are documented in [the staged baseline plan](staged-qwen-baseline-2026-10-30.md). Explicit scored-launch approval remains pending.
