@@ -88,9 +88,13 @@ class ControllerTest(unittest.TestCase):
 
         metadata = {"hashes": self.spec["model_hashes"], "source_sha256": "provider",
                     "toolchain": {"source_sha256": "helper"}}
+        def ready(payload):
+            self.assertIsNone(payload, "Readiness must not perform inference")
+            return NS(get=lambda **_: metadata)
+
         provider = NS(app=NS(run=app_run, app_id="fake-app"),
                       packaging_check=NS(spawn=lambda: NS(get=lambda **_: {"source_sha256": "provider", "gpu_requested": False})),
-                      Qwen=lambda: NS(metadata=NS(spawn=lambda: NS(get=lambda **_: metadata))))
+                      Qwen=lambda: NS(complete=NS(spawn=ready)))
         server = NS(server_port=1234, shutdown=lambda: None, server_close=lambda: None)
         modules = {"staged_budget": budget, "staged_qwen_provider": provider,
                    "staged_bridge": NS(bridge=lambda *_, **__: server)}
