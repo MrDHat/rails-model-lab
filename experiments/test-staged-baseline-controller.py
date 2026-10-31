@@ -59,6 +59,14 @@ class ControllerTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     controller.run(self.root, self.approval)
 
+    def test_low_disk_cannot_import_compute_or_consume_identity(self):
+        with patch.object(controller, "verify"), \
+             patch.object(controller.shutil, "disk_usage", return_value=NS(free=2 * 1024**3)), \
+             patch.object(controller, "load_module", side_effect=AssertionError("Compute import forbidden")):
+            with self.assertRaisesRegex(ValueError, "12 GiB"):
+                controller.run(self.root, self.approval)
+        self.assertEqual(json.loads((self.root / "ledger.json").read_text()), [])
+
     def fake_run(self, missing_result=False, environment_error=False, provider_error=False):
         metadata = {"hashes": self.spec["model_hashes"], "source_sha256": "provider",
                     "toolchain": {"source_sha256": "helper"}}
@@ -94,6 +102,7 @@ class ControllerTest(unittest.TestCase):
         self.assertTrue(all(x["status"] == "finished" for x in ledger))
         # Running the same prepared ledger again must never execute a trial.
         with patch.object(controller, "verify"), patch.object(controller, "load_module", return_value=budget), \
+             patch.object(controller.shutil, "disk_usage", return_value=NS(free=100 * 1024**3)), \
              patch.object(controller.subprocess, "run", side_effect=AssertionError("No retry")):
             with self.assertRaisesRegex(ValueError, "No complete wave"):
                 controller.run(self.root, self.approval)
