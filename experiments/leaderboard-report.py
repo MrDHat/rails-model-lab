@@ -7,6 +7,34 @@ from pathlib import Path
 from statistics import mean
 
 
+def load_ledger_results(path):
+    """Read only ledger-selected originals/replacements, including external originals."""
+    results, identities, paths = [], set(), set()
+    for entry in json.loads(path.read_text()):
+        identity = (entry["task"], entry["attempt"])
+        if identity in identities:
+            raise ValueError("Duplicate ledger identity")
+        identities.add(identity)
+        if entry["status"] != "finished":
+            continue
+        evidence = entry.get("results", [])
+        if len(evidence) > 1:
+            raise ValueError("Ambiguous ledger result evidence")
+        for name in evidence:
+            source = Path(name)
+            if not source.is_absolute():
+                source = path.parent / source
+            source = source.resolve()
+            if source in paths:
+                raise ValueError("Duplicate ledger result evidence")
+            paths.add(source)
+            result = json.loads(source.read_text())
+            if result["task"] != entry["task"]:
+                raise ValueError("Ledger task differs from result evidence")
+            results.append(result)
+    return results
+
+
 def summarize(plan, results):
     results = list(results)
     if not plan["attempts"]:
@@ -54,7 +82,9 @@ def summarize(plan, results):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("plan", type=Path)
-    parser.add_argument("trials", type=Path)
+    parser.add_argument("trials", type=Path, help="Trial directory, or ledger JSON when --ledger is set")
+    parser.add_argument("--ledger", action="store_true", help="Read explicit ledger result paths, including retained originals")
     args = parser.parse_args()
-    results = [json.loads(p.read_text()) for p in sorted(args.trials.rglob("result.json"))]
+    results = (load_ledger_results(args.trials) if args.ledger else
+               [json.loads(p.read_text()) for p in sorted(args.trials.rglob("result.json"))])
     print(json.dumps(summarize(json.loads(args.plan.read_text()), results), indent=2))
