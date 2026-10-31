@@ -1,0 +1,40 @@
+{
+  "id": "local-day-window",
+  "status": "pending-user-review",
+  "training_authorized": false,
+  "authored_on": "2026-10-20",
+  "author": "Codex (synthetic candidate)",
+  "origin": "New scenario and code authored from public Rails API semantics; not extracted from an application or benchmark.",
+  "sources": [
+    "https://api.rubyonrails.org/classes/ActiveSupport/TimeWithZone.html",
+    "https://api.rubyonrails.org/classes/Time.html"
+  ],
+  "excluded_sources": "No benchmark task text, configs, solutions, graders, generated patches or run outputs used as example content.",
+  "limitations": "Authoring model has seen benchmark metadata during baseline setup; independent content is not proof of zero semantic overlap or pretraining contamination.",
+  "proposed_training_boundary": {
+    "input": [
+      "request.md",
+      "starter.rb"
+    ],
+    "target": [
+      "reference.rb"
+    ],
+    "review_only": [
+      "README.md",
+      "verification_test.rb",
+      "mutation.rb",
+      "provenance.json"
+    ],
+    "exported": false
+  },
+  "validation_runtime": "Offline cached image sha256:6dc49a91f02835934a9dc66a8210e14711cfe832775c3582c9ce265309baa71d; Ruby 3.4.7 / Rails 8.2.0.alpha / sqlite3 2.9.5. No broader version support claimed.",
+  "validation": {
+    "seed": 1,
+    "reference_tests": 6,
+    "reference_assertions": 20,
+    "reference_passed": true,
+    "starter_rejected": true,
+    "mutation_rejected": true,
+    "skips": 0
+  }
+}
