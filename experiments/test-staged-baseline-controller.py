@@ -67,10 +67,17 @@ class ControllerTest(unittest.TestCase):
                 controller.run(self.root, self.approval)
         self.assertEqual(json.loads((self.root / "ledger.json").read_text()), [])
 
-    def fake_run(self, missing_result=False, environment_error=False, provider_error=False):
+    def fake_run(self, missing_result=False, environment_error=False, provider_error=False, stop_fails=False):
+        self.app_run_options = None
+        self.commands = []
+
+        def app_run(**options):
+            self.app_run_options = options
+            return nullcontext()
+
         metadata = {"hashes": self.spec["model_hashes"], "source_sha256": "provider",
                     "toolchain": {"source_sha256": "helper"}}
-        provider = NS(app=NS(run=nullcontext, app_id="fake-app"),
+        provider = NS(app=NS(run=app_run, app_id="fake-app"),
                       packaging_check=NS(spawn=lambda: NS(get=lambda **_: {"source_sha256": "provider", "gpu_requested": False})),
                       Qwen=lambda: NS(metadata=NS(spawn=lambda: NS(get=lambda **_: metadata))))
         server = NS(server_port=1234, shutdown=lambda: None, server_close=lambda: None)
@@ -78,6 +85,9 @@ class ControllerTest(unittest.TestCase):
                    "staged_bridge": NS(bridge=lambda *_, **__: server)}
 
         def command(args, **kwargs):
+            self.commands.append(args)
+            if "stop" in args and stop_fails:
+                return NS(returncode=1, stdout="", stderr="synthetic stop failure")
             if args[0] == "bundle" and not missing_result:
                 root = Path(args[args.index("--runs_dir") + 1])
                 (root / "result.json").write_text(json.dumps({"outcome": {"scored": False,
@@ -120,6 +130,18 @@ class ControllerTest(unittest.TestCase):
         self.assertEqual(len(self.fake_run(provider_error=True)), 4)
         event = json.loads(next(self.root.glob("batch-*/event.json")).read_text())
         self.assertEqual(event["status"], "shared_provider_failure")
+
+    def test_modal_lifecycle_detaches_and_explicitly_stops_after_wave(self):
+        self.fake_run(provider_error=True)
+        self.assertEqual(self.app_run_options, {"detach": True})
+        stops = [args for args in self.commands if "stop" in args]
+        self.assertEqual(stops, [[sys.executable, "-m", "modal", "app", "stop", "--yes", "fake-app"]])
+
+    def test_failed_explicit_stop_is_reported_for_manual_verification(self):
+        self.fake_run(provider_error=True, stop_fails=True)
+        batch = next(self.root.glob("batch-*"))
+        self.assertIn("shutdown_error", json.loads((batch / "event.json").read_text()))
+        self.assertEqual(json.loads((batch / "app-stop.json").read_text())["returncode"], 1)
 
 
 if __name__ == "__main__":
