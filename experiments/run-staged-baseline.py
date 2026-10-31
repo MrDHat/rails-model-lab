@@ -19,6 +19,7 @@ SOURCES = ["run-staged-baseline.py", "staged-baseline-budget.py", "staged_qwen_p
            "staged-provider-config.rb", "concurrent-modal-bridge.py", "qwen_cuda_environment.py",
            "installed-modal-transport.rb", "installed-modal-config.rb", "sandbox-inference-relay.rb",
            "leaderboard.Gemfile", "leaderboard.Gemfile.lock"]
+SOURCES.append("staged-harness.rb")
 
 
 def digest(path):
@@ -136,7 +137,7 @@ def run(root, approval_path):
                 def execute(attempt):
                     trial = batch / f'{attempt["task"]}-{attempt["attempt"]}'
                     trial.mkdir()
-                    args = ["bundle", "exec", "lemans", "run", "--require", str(REPO / "experiments/staged-provider-config.rb"),
+                    args = ["bundle", "exec", "ruby", str(REPO / "experiments/staged-harness.rb"), "run",
                             "--bench", spec["benchmark_path"], "--backend", "docker",
                             "--model", "gpustack/Qwen/Qwen3.5-4B", "--max_output_tokens", "32768",
                             "--task", attempt["task"], "--attempts", "1", "--concurrency", "1", "--runs_dir", str(trial)]
