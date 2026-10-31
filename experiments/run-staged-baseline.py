@@ -113,6 +113,11 @@ def run(root, approval_path):
                        GPUSTACK_API_BASE=f"http://127.0.0.1:{server.server_port}/v1", MODAL_BRIDGE_TOKEN=token)
             profiles = {p["task"]: p for p in spec["profiles"]}
             while True:
+                # Shared inference faults invalidate admission for later tasks,
+                # even when each upstream harness writes an unscored result.
+                if any((batch / "rpc").glob("*.error.json")):
+                    event["status"] = "shared_provider_failure"
+                    break
                 verify(spec)
                 pending = [a for a in spec["plan"]["attempts"] if (a["task"], a["attempt"]) not in
                            {(x["task"], x["attempt"]) for x in ledger}]
@@ -155,7 +160,10 @@ def run(root, approval_path):
                 save(ledger_path, ledger)
                 # Unscored results are retained and independent tasks continue.
                 # A failed harness with no result is a global environment issue.
-                if any(not x["results"] for x in outcomes):
+                if any(not x["results"] for x in outcomes) or any(
+                    json.loads(Path(path).read_text()).get("outcome", {}).get("name") == "environment_error"
+                    for x in outcomes for path in x["results"]
+                ):
                     event["status"] = "environment_failure"
                     break
     except Exception as error:
