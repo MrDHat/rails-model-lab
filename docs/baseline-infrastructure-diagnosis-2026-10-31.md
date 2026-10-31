@@ -10,6 +10,8 @@ This establishes a compatibility failure on the emulated-image path. It does not
 
 `experiments/check-local-jail.py` repeats this narrow probe using existing images only, with no network and no model or task inputs. It is not a full agent-jail or verifier validation.
 
+A separately recorded native ARM installed-agent validation subsequently passed: four real installed adapters completed eight synthetic provider calls with four concurrent calls, distinct tool observations and no published ports. No GPU or benchmark task was used. Docker inspection found no remaining lemans containers or networks; unrelated workloads were left alone. This validates the native synthetic path, not the failing pinned amd64 image or every benchmark environment.
+
 ## Local sleep and remote lifecycle
 
 The local power log records clamshell sleep at 01:20:35 UTC despite an active caffeinate assertion. The remote log records cancellation at 01:22:37 and says the local client disconnected. The first subsequent local heartbeat failure was logged at 01:34:18, shortly after a dark wake.
@@ -29,5 +31,7 @@ At diagnosis the laptop had about 2.1 GiB free. Unrelated Docker workloads are a
 The user explicitly authorized replacing infrastructure-invalid attempts after validation. Every original record must remain available; replacements must be reported separately and linked to the original identity. Scored model failures must never be retried. Classification and replacement selection must be based on infrastructure evidence, not model performance. No replacement has been launched or silently selected by this change.
 
 A local review maps all 135 planned identities: 110 infrastructure-replacement candidates, two scored outcomes retained without retry, and 23 unstarted identities. Candidates comprise 106 unscored original results and four confirmed CLI option failures. Each available original result still matches its previously saved evidence hash; the review records original ledger/configuration hashes and evidence links locally. This is a candidate inventory, not a launch-ready replacement plan or a new score.
+
+A separate local preparation now retains the two scored identities in its starting ledger, leaving 133 pending slots. It records original evidence lineage, preserves benchmark/model settings, and freezes current source hashes without overwriting the historical preparation. Source, benchmark and original evidence checks pass. No launch approval exists for that preparation. A bounded CPU-only remote disconnect probe was launched separately; its result is still pending at this checkpoint.
 
 Next gates are sufficient disk, compatible sandbox execution, a transport lifecycle that survives the intended host behavior, synthetic validation of that complete path, and fresh verification of free-credit allowance. The $0 paid-spending constraint and $25 workspace usage ceiling remain unchanged. Full baseline completion and a leaderboard score remain unproven.
