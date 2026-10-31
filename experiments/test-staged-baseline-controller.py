@@ -59,7 +59,7 @@ class ControllerTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     controller.run(self.root, self.approval)
 
-    def fake_run(self, missing_result=False):
+    def fake_run(self, missing_result=False, environment_error=False, provider_error=False):
         metadata = {"hashes": self.spec["model_hashes"], "source_sha256": "provider",
                     "toolchain": {"source_sha256": "helper"}}
         provider = NS(app=NS(run=nullcontext, app_id="fake-app"),
@@ -72,11 +72,17 @@ class ControllerTest(unittest.TestCase):
         def command(args, **kwargs):
             if args[0] == "bundle" and not missing_result:
                 root = Path(args[args.index("--runs_dir") + 1])
-                (root / "result.json").write_text(json.dumps({"outcome": {"scored": False}}))
+                (root / "result.json").write_text(json.dumps({"outcome": {"scored": False,
+                    "name": "environment_error" if environment_error else "agent_error"}}))
+                if provider_error:
+                    rpc = root.parent / "rpc"
+                    rpc.mkdir(exist_ok=True)
+                    (rpc / "shared.error.json").write_text('{"error":"shared provider unavailable"}')
             return NS(returncode=0, stdout="", stderr="")
 
         with patch.object(controller, "verify"), patch.object(controller, "load_module", side_effect=lambda name, _: modules[name]), \
              patch.dict(sys.modules, {"modal": NS(enable_output=nullcontext)}), \
+             patch.object(controller.shutil, "disk_usage", return_value=NS(free=100 * 1024**3)), \
              patch.object(controller.subprocess, "run", side_effect=command), patch.dict(controller.os.environ):
             controller.run(self.root, self.approval)
         return json.loads((self.root / "ledger.json").read_text())
@@ -97,6 +103,14 @@ class ControllerTest(unittest.TestCase):
         self.assertEqual(len(ledger), 4)
         event = json.loads(next(self.root.glob("batch-*/event.json")).read_text())
         self.assertEqual(event["status"], "environment_failure")
+
+    def test_environment_failure_with_result_stops_later_admission(self):
+        self.assertEqual(len(self.fake_run(environment_error=True)), 4)
+
+    def test_shared_provider_failure_with_unscored_results_stops_later_admission(self):
+        self.assertEqual(len(self.fake_run(provider_error=True)), 4)
+        event = json.loads(next(self.root.glob("batch-*/event.json")).read_text())
+        self.assertEqual(event["status"], "shared_provider_failure")
 
 
 if __name__ == "__main__":
