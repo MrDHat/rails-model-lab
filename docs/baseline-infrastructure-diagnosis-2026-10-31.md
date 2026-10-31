@@ -14,11 +14,13 @@ This establishes a compatibility failure on the emulated-image path. It does not
 
 The local power log records clamshell sleep at 01:20:35 UTC despite an active caffeinate assertion. The remote log records cancellation at 01:22:37 and says the local client disconnected. The first subsequent local heartbeat failure was logged at 01:34:18, shortly after a dark wake.
 
-This timing strongly supports laptop suspension interrupting the client heartbeat. It is not a reproduction of Modal's server-side disconnect decision. [Modal documents](https://modal.com/docs/guide/apps) that an attached ephemeral app stops when the client disconnects; [detached runs](https://modal.com/docs/cli/latest/run) survive client disconnection. Detaching inference alone would not keep a local benchmark harness executing while its host sleeps. A repair must cover both sides, preserve the absolute budget deadline, and verify shutdown. No detached lifecycle change is claimed validated here.
+This timing strongly supports laptop suspension interrupting the client heartbeat. It is not a reproduction of Modal's server-side disconnect decision. [Modal documents](https://modal.com/docs/guide/apps) that an attached ephemeral app stops when the client disconnects; [detached runs](https://modal.com/docs/cli/latest/run) survive client disconnection. Detaching inference alone would not keep a local benchmark harness executing while its host sleeps.
+
+The prospective controller now requests detached mode and explicitly stops its exact app after started trials settle, recording the stop command's outcome and flagging any stop failure in the completion event. The existing independent remote absolute deadline remains unchanged. Simulated lifecycle tests cover detached selection, explicit shutdown after a shared fault, and reporting a failed shutdown. These prove controller behavior, not long-lived remote reliability: no remote disconnect/shutdown validation has run for this change. Local harness suspension remains unresolved.
 
 ## Disk admission fix
 
-The controller previously checked free disk only after remote startup. It now requires the existing 12 GiB minimum before importing remote compute, while retaining the per-wave check. A regression test failed before this fix by reaching the compute-import seam, then passed. All seven controller lifecycle tests pass. Test disk availability is supplied explicitly, independent of the developer laptop.
+The controller previously checked free disk only after remote startup. It now requires the existing 12 GiB minimum before importing remote compute, while retaining the per-wave check. A regression test failed before this fix by reaching the compute-import seam, then passed. All nine controller lifecycle tests and six budget tests pass. Test disk availability is supplied explicitly, independent of the developer laptop.
 
 At diagnosis the laptop had about 2.1 GiB free. Unrelated Docker workloads are active and were left untouched. This remains a launch blocker.
 
