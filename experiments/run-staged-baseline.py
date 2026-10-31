@@ -75,6 +75,10 @@ def run(root, approval_path):
     expires_at = min(time.time() + seconds, billing["cycle_ends_at"] - 300)
     if expires_at - time.time() < 600:
         raise ValueError("Too close to free-credit cycle boundary")
+    # Reject a known local blocker before importing or starting remote compute.
+    # Keep the per-wave check too: disk availability can change during a stage.
+    if shutil.disk_usage(root).free < 12 * 1024**3:
+        raise ValueError("At least 12 GiB free disk required before starting compute")
     verify(spec)
     ledger_path = root / "ledger.json"
     ledger = json.loads(ledger_path.read_text())
