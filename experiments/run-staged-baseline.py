@@ -158,7 +158,7 @@ def run(root, approval_path):
             if gate["source_sha256"] != spec["sources"]["staged_qwen_provider.py"] or gate["gpu_requested"]:
                 raise ValueError("CPU packaging verification failed")
             model = provider.Qwen()
-            metadata = model.metadata.spawn().get(timeout=420)
+            metadata = model.complete.spawn(None).get(timeout=420)
             save(batch / "metadata.json", metadata)
             if (metadata["hashes"] != spec["model_hashes"] or
                 metadata["source_sha256"] != spec["sources"]["staged_qwen_provider.py"] or
