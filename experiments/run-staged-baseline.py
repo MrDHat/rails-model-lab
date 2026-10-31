@@ -96,10 +96,12 @@ def run(root, approval_path):
     provider = load_module("staged_qwen_provider", REPO / "experiments/staged_qwen_provider.py")
     bridge = load_module("staged_bridge", REPO / "experiments/concurrent-modal-bridge.py")
     server = None
+    app_id = None
     event = {"status": "failed", "scored_launch": True}
     try:
-        with modal.enable_output(), provider.app.run():
-            save(batch / "app.json", {"app_id": provider.app.app_id})
+        with modal.enable_output(), provider.app.run(detach=True):
+            app_id = provider.app.app_id
+            save(batch / "app.json", {"app_id": app_id})
             gate = provider.packaging_check.spawn().get(timeout=60)
             if gate["source_sha256"] != spec["sources"]["staged_qwen_provider.py"] or gate["gpu_requested"]:
                 raise ValueError("CPU packaging verification failed")
@@ -176,6 +178,21 @@ def run(root, approval_path):
         if server:
             server.shutdown()
             server.server_close()
+        # Detached apps survive a transient client disconnect. Stop the exact
+        # app explicitly after all started trials have settled. The remote
+        # absolute deadline remains the independent bound if this host dies.
+        if app_id:
+            try:
+                stopped = subprocess.run(
+                    [sys.executable, "-m", "modal", "app", "stop", "--yes", app_id],
+                    capture_output=True, text=True, timeout=60)
+                save(batch / "app-stop.json", {"returncode": stopped.returncode,
+                    "stdout": stopped.stdout, "stderr": stopped.stderr})
+                if stopped.returncode:
+                    event["shutdown_error"] = "Explicit app stop failed; verify exact app lifecycle"
+            except Exception as error:
+                save(batch / "app-stop.json", {"error": repr(error)})
+                event["shutdown_error"] = "Explicit app stop failed; verify exact app lifecycle"
         event.update(finished_at=time.time(), ledger_attempts=len(ledger))
         save(batch / "event.json", event)
         message = (f"The explicitly authorized staged baseline batch finished. Read {batch}/event.json and the original ledger/results. "
