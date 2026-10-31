@@ -41,3 +41,9 @@ A separate local preparation now retains the two scored identities in its starti
 A separate CPU-only VM validation is now running the pinned Lemans 1.5.1 host agent against a synthetic loopback provider. Its upload is limited to the dependency manifest/lock and the existing synthetic test. No benchmark files, model weights or hidden evaluation material are included. It has a 900-second sandbox lifetime, explicit shutdown, and a direct completion callback. No result is claimed before that callback.
 
 Next gates are sufficient disk or a validated remote execution route, compatible sandbox execution, a transport lifecycle that survives the intended host behavior, synthetic validation of that complete path, and fresh verification of free-credit allowance. The $0 paid-spending constraint and $25 workspace usage ceiling remain unchanged. Full baseline completion and a leaderboard score remain unproven.
+
+## Remote runner budget gate
+
+A VM runner needs a separate compute reservation. [Modal prices Sandbox CPU and memory at non-preemptible rates](https://modal.com/pricing), approximately three times ordinary Function rates. The current $1.50/hour local-harness reservation does not include that remote CPU runner and must not be reused for a VM launch.
+
+Reading the pinned harness configuration produced an offline resource inventory without executing tasks. A conservative continuous-resource bound exceeds the $25 ceiling for three long multistep tasks even when run individually. This is an upper-bound planning limitation, not measured task cost or evidence that free execution is impossible. Native VM CPU quota mapping and disk capacity, plus accounting for GPU scale-down during build/verification phases, still need validation before a remote full-allowance plan can be admitted. No task limits, generation settings, spending controls or scored outcomes were changed.
