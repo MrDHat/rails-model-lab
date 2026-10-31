@@ -54,6 +54,55 @@ def verify(spec):
             raise ValueError("Benchmark checkout is not clean and pinned")
 
 
+def verify_replacements(spec, ledger):
+    names = ("parent_prepared", "replacement_review", "replacement_authorization")
+    if not any(name in spec for name in names):
+        return {}
+    records = {}
+    for name in names:
+        reference = spec[name]
+        path = Path(reference["path"])
+        if digest(path) != reference["sha256"]:
+            raise ValueError("Frozen replacement reference changed: " + name)
+        records[name] = json.loads(path.read_text())
+    if records["replacement_authorization"].get("user_authorized") is not True:
+        raise ValueError("Infrastructure replacement authorization required")
+    parent = records["parent_prepared"]
+    for name in ("plan", "profiles", "settings", "model_hashes", "benchmark_revision", "benchmark_files"):
+        if spec[name] != parent[name]:
+            raise ValueError("Frozen replacement configuration differs: " + name)
+    key = lambda item: (item["task"], item["attempt"])
+    review = records["replacement_review"]["identities"]
+    planned = {key(item) for item in spec["plan"]["attempts"]}
+    if {key(item) for item in review} != planned or len(review) != len(planned):
+        raise ValueError("Replacement review must cover every planned identity exactly once")
+    entries = {key(item): item for item in ledger}
+    if len(entries) != len(ledger) or entries.keys() - planned:
+        raise ValueError("Unexpected or duplicate replacement ledger identity")
+    replacements = {}
+    for item in review:
+        disposition = item["disposition"]
+        if disposition not in ("retain_scored_no_retry", "infrastructure_replacement_candidate", "unstarted"):
+            raise ValueError("Unresolved replacement disposition")
+        if disposition == "unstarted":
+            continue
+        evidence = Path(item["evidence"])
+        if digest(evidence) != item["evidence_sha256"]:
+            raise ValueError("Original replacement evidence changed")
+        if disposition == "infrastructure_replacement_candidate":
+            if evidence.name == "result.json" and json.loads(evidence.read_text())["outcome"]["scored"] is True:
+                raise ValueError("Scored original cannot be a replacement candidate")
+            replacements[key(item)] = {name: item[name] for name in ("evidence", "evidence_sha256", "reason")}
+        if disposition == "retain_scored_no_retry":
+            entry = entries.get(key(item), {})
+            if entry.get("status") != "finished" or entry.get("results") != [str(evidence)]:
+                raise ValueError("Scored original must remain in the ledger without retry")
+            original = json.loads(evidence.read_text())
+            if original["task"] != item["task"] or original["outcome"]["scored"] is not True:
+                raise ValueError("Scored original evidence is invalid")
+    return replacements
+
+
 def run(root, approval_path):
     # Authorization is written only after explicit user scored-launch approval.
     # Read it before importing Modal or any provider module.
@@ -62,6 +111,8 @@ def run(root, approval_path):
     approval = json.loads(approval_path.read_text())
     if approval.get("user_explicitly_approved_scored_launch") is not True or approval.get("prepared_sha256") != digest(spec_path):
         raise ValueError("Explicit scored-launch approval for this preparation required")
+    if "status" in spec and spec["status"] != "launch_ready":
+        raise ValueError("Preparation is not launch ready; infrastructure validation required")
     billing = approval["billing"]
     if not 0 <= time.time() - billing["observed_at"] <= 300:
         raise ValueError("Fresh billing verification required for each batch")
@@ -82,6 +133,7 @@ def run(root, approval_path):
     verify(spec)
     ledger_path = root / "ledger.json"
     ledger = json.loads(ledger_path.read_text())
+    replacement_origins = verify_replacements(spec, ledger)
     budget = load_module("staged_budget", REPO / "experiments/staged-baseline-budget.py")
     remaining = budget.prepare(spec["plan"], spec["profiles"], ledger, available)
     if not remaining["waves"]:
@@ -125,6 +177,7 @@ def run(root, approval_path):
                     event["status"] = "shared_provider_failure"
                     break
                 verify(spec)
+                verify_replacements(spec, ledger)
                 pending = [a for a in spec["plan"]["attempts"] if (a["task"], a["attempt"]) not in
                            {(x["task"], x["attempt"]) for x in ledger}]
                 if not pending:
@@ -141,8 +194,12 @@ def run(root, approval_path):
                 # Persist all identities before starting any process. Even a
                 # crash before generation never authorizes an automatic retry.
                 for attempt in wave:
-                    ledger.append({"task": attempt["task"], "attempt": attempt["attempt"],
-                                   "status": "started", "started_at": time.time(), "batch": batch.name})
+                    record = {"task": attempt["task"], "attempt": attempt["attempt"],
+                              "status": "started", "started_at": time.time(), "batch": batch.name}
+                    origin = replacement_origins.get((attempt["task"], attempt["attempt"]))
+                    if origin:
+                        record["replacement_of"] = origin
+                    ledger.append(record)
                 save(ledger_path, ledger)
 
                 def execute(attempt):
