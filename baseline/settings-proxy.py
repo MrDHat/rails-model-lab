@@ -7,6 +7,7 @@ With "modal", completions go to the deployed baseline/modal_qwen.py app instead.
 """
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
 from pathlib import Path
 import sys
 import time
@@ -14,17 +15,17 @@ import urllib.error
 import urllib.request
 import uuid
 
-# Same values as runs/staged-baseline-preparation-20261030/prepared.json.
+# Frozen on 2026-10-30, before any official-limit attempt.
 SETTINGS = {"temperature": 0.6, "top_p": 0.95, "top_k": 20, "seed": 42,
             "presence_penalty": 0, "repetition_penalty": 1.0,
             "chat_template_kwargs": {"enable_thinking": True}, "max_tokens": 32768}
-MODEL = "Qwen/Qwen3.5-4B"
+MODEL = os.environ["MODEL"]  # from baseline/settings.sh
 TIMEOUT = 1560
 
 
 def modal_forwarder():
     import modal
-    qwen = modal.Cls.from_name("rails-qwen", "Qwen")()
+    qwen = modal.Cls.from_name(os.environ["MODAL_APP"], "Qwen")()
 
     def forward(path, payload):
         if not path.endswith("/chat/completions"):

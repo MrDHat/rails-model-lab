@@ -24,7 +24,9 @@ Modal isn't used.
 
 1. GCP project with billing, and `gcloud auth login`.
 2. `modal token new`, so `~/.modal.toml` exists.
-3. `modal deploy baseline/modal_qwen.py`.
+3. `modal deploy baseline/modal_qwen.py`. For a model other than the 4B, set
+   `QWEN` to a file in `models/` and fetch its weights on CPU first:
+   `QWEN=qwen3.5-27b modal run baseline/modal_qwen.py::download`.
 4. `GPU=0 GCP_PROJECT=your-project bash baseline/create-vm.sh` creates the VM,
    copies the repo and `~/.modal.toml`, and provisions Ruby, Docker and lemans.
 
@@ -32,6 +34,7 @@ Modal isn't used.
 
 ```sh
 gcloud compute ssh rails-qwen --zone us-central1-a
+export QWEN=qwen3.5-27b                                  # default qwen3.5-4b
 bash ~/rails-model-lab/baseline/serve-qwen.sh            # proxy + smoke completion
 bash ~/rails-model-lab/baseline/run-baseline.sh atomic   # 19 atomic tasks, in tmux
 ```
@@ -43,7 +46,7 @@ Afterwards, on the laptop:
 
 ```sh
 bash baseline/pull-results.sh                       # VM runs/ -> runs/vm/
-modal app stop rails-qwen
+modal app stop rails-qwen-27b                       # MODAL_APP in the model file
 gcloud compute instances stop rails-qwen --zone us-central1-a
 ```
 
@@ -53,10 +56,12 @@ A stopped VM bills only its 200 GB disk, about $8/month.
 
 `lemans run --resume` counts only scored trials, so each of the three passes
 reruns infrastructure failures (Docker errors, a preempted GPU) and never a
-scored model failure. Every attempt's directory stays under `runs/gcp-<stage>/`.
+scored model failure. Every attempt's directory stays under `runs/<QWEN>-<stage>/`.
 
 ## Knobs
 
+- `QWEN` (default `qwen3.5-4b`): which file in `models/`. Each file pins the
+  model, revision, Modal app, GPU and batch size. Sampling is the same for all.
 - `CONCURRENCY` (default 2): agents sharing the GPU. More finishes the batch
   sooner but slows each agent against the 90-minute task limit.
 - `ATTEMPTS` (atomic only, default 1).
