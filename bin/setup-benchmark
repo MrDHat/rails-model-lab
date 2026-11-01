@@ -10,5 +10,7 @@ if ! git -C vendor/ai-evals cat-file -e "$revision^{commit}" 2>/dev/null; then
   git -C vendor/ai-evals fetch --depth 1 origin "$revision"
 fi
 git -C vendor/ai-evals checkout --detach "$revision"
+# Some git versions leave top-level files out of the sparse checkout.
+[ -f vendor/ai-evals/bench.yml ] || git -C vendor/ai-evals sparse-checkout disable
 bundle config set --local path vendor/bundle
 bundle install
