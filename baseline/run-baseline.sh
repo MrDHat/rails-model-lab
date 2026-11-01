@@ -15,9 +15,10 @@ source baseline/settings.sh
 stage="${1:?usage: run-baseline.sh atomic|official}"
 if [ -z "${TMUX:-}" ] && [ "${2:-}" != --inside ]; then
   # A running tmux server keeps its own environment, so pass the knobs explicitly.
-  tmux new-session -d -s "baseline-$QWEN-$stage" \
+  session="baseline-${QWEN//./_}-$stage"  # tmux would turn dots into underscores anyway
+  tmux new-session -d -s "$session" \
     "QWEN=$QWEN CONCURRENCY=$CONCURRENCY ATTEMPTS=${ATTEMPTS:-1} bash baseline/run-baseline.sh $stage --inside 2>&1 | tee -a runs/baseline-$QWEN-$stage.log"
-  echo "Started in tmux session baseline-$QWEN-$stage. Watch: tmux attach -t baseline-$QWEN-$stage"
+  echo "Started in tmux session $session. Watch: tmux attach -t $session"
   exit 0
 fi
 
