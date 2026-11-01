@@ -88,8 +88,7 @@ class Qwen:
             except ProcessLookupError:
                 pass
 
-    @modal.method()
-    def metadata(self):
+    def _metadata(self):
         return {"model": MODEL, "revision": REVISION, "hashes": self.manifest,
                 "source_sha256": hashlib.sha256(Path("/root/staged_qwen_provider.py").read_bytes()).hexdigest(),
                 "toolchain": self.toolchain, "cuda_graphs_requested": True,
@@ -97,7 +96,14 @@ class Qwen:
                 "max_sequences": 4, "expires_at": expires_at}
 
     @modal.method()
+    def metadata(self):
+        return self._metadata()
+
+    @modal.method()
     def complete(self, payload):
+        # Readiness must warm the same method pool that serves inference.
+        if payload is None:
+            return self._metadata()
         import requests
         before = time.monotonic()
         if self.deadline - before < 5:
