@@ -5,20 +5,36 @@ Benchmark: [rails/ai-evals](https://github.com/rails/ai-evals) at
 (90 minutes, 400 steps, 300 s per command). Headline metric is the
 leaderboard's: mean over tasks of mean credit per task.
 
-## Qwen3.5-4B, atomic tasks (in progress)
+## Qwen atomic baselines
 
-BF16, revision `851bf6e8`, vLLM 0.32.0, thinking on, temperature 0.6,
-top-p 0.95, top-k 20, seed 42, 32,768 output tokens per call. One attempt per
-task. Run started 2026-11-01 on a GCP CPU VM with a Modal A10.
+Both runs: BF16, vLLM 0.32.0, thinking on, temperature 0.6, top-p 0.95,
+top-k 20, seed 42, 32,768 output tokens per call, 262,144-token context. One
+attempt per task. Harness on a GCP CPU VM; inference on Modal.
 
-As of 21:28 UTC: 1 of 9 scored tasks passed (`at-compact-positions`, credit
-0.1). Two failed on the 90-minute limit, one on the 400-step limit, and the
-rest outright. Four trials were invalid (a Docker build race and Modal GPU
-preemptions) and are being rerun. The final number replaces this paragraph.
+| Model | GPU | Scored | Passed | Credit | Mean time |
+|---|---|---|---|---|---|
+| Qwen3.5-27B (`fc05daec`) | H200 | 19 / 19 | 5 (26%) | **7.4** | 9m 25s |
+| Qwen3.5-4B (`851bf6e8`), stopped early | A10 | 13 / 19 | 2 (15%) | 1.5 | 14m 14s |
 
-Main failure mode: thinking loops. The model repeats one sentence until it hits
-the 32,768-token cap, and each such call takes about 16 minutes of the task's
-budget.
+The 4B run was stopped after 13 scored tasks once it was clear it would stay
+near zero. Its six unrun tasks have no result.
+
+**27B, 2026-11-01.** Solved `at-archive-book-access` for full credit, and
+passed the tests on `at-log-to-terminal`, `at-release-recap`,
+`at-throttle-search` and `at-error-page-flake` for 0.1 credit each. Each
+atomic task targets a specific Rails API; a fix that passes the tests without
+using it earns 0.1, the rest goes to fixes that do. One trial ran past the
+262,144-token context, was marked invalid, and scored 0 on its rerun. About
+$9 of Modal credit.
+
+**4B, 2026-11-01.** Passed the tests on `at-compact-positions` and
+`at-log-to-terminal` (0.1 each). Main failure mode: thinking loops, where the
+model repeats one sentence until the 32,768-token cap, about 16 minutes per
+call. Two tasks hit the 90-minute limit and one the 400-step limit.
+
+Infrastructure failures during these runs, all rerun as invalid: a Docker
+build race on the first launch (fixed with BuildKit), and three Modal GPU
+preemptions in four minutes.
 
 ## Published atomic scores for comparison
 

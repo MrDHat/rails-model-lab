@@ -5,18 +5,27 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source baseline/settings.sh
 
+mkdir -p runs/inference
+# One proxy serves one model; replace it when QWEN changes.
+if [ "$(cat runs/inference/proxy.model 2>/dev/null)" != "$MODEL" ]; then
+  pkill -f settings-proxy.py || true
+  sleep 1
+fi
+start_proxy() {
+  pgrep -f baseline/settings-proxy.py >/dev/null && return
+  nohup "$@" baseline/settings-proxy.py "runs/inference/$QWEN-$(date -u +%Y%m%dT%H%M%S)" \
+    "$PROXY_PORT" "$UPSTREAM" > "runs/inference/proxy-$QWEN.log" 2>&1 &
+  echo "$MODEL" > runs/inference/proxy.model
+  sleep 3
+}
+
 if [ "$INFERENCE" = modal ]; then
-  mkdir -p runs/inference
-  if ! pgrep -f baseline/settings-proxy.py >/dev/null; then
-    nohup "$MODAL_VENV/bin/python" baseline/settings-proxy.py "runs/inference/$(date -u +%Y%m%dT%H%M%S)" \
-      "$PROXY_PORT" modal > runs/inference/proxy.log 2>&1 &
-    sleep 3
-  fi
+  UPSTREAM=modal start_proxy "$MODAL_VENV/bin/python"
   echo "Calling Modal (a cold start takes several minutes)..."
   curl -sf --max-time 1500 "http://127.0.0.1:$PROXY_PORT/v1/chat/completions" -H 'Content-Type: application/json' \
     -d '{"messages":[{"role":"user","content":"Reply with exactly: OK"}]}' \
-    | jq '{content: .choices[0].message.content, usage}' || { cat runs/inference/proxy.log; exit 1; }
-  echo "Qwen (Modal) is reachable on 127.0.0.1:$PROXY_PORT"
+    | jq '{content: .choices[0].message.content, usage}' || { cat "runs/inference/proxy-$QWEN.log"; exit 1; }
+  echo "$MODEL (Modal) is reachable on 127.0.0.1:$PROXY_PORT"
   exit 0
 fi
 
@@ -27,17 +36,13 @@ if ! docker ps --format '{{.Names}}' | grep -qx qwen-vllm; then
     -v "$HF_CACHE:/root/.cache/huggingface" -e HF_HUB_OFFLINE=1 \
     "$VLLM_IMAGE" "$MODEL" --revision "$MODEL_REVISION" \
     --host 127.0.0.1 --port "$VLLM_PORT" --dtype bfloat16 \
-    --max-model-len 262144 --max-num-seqs 4 --gpu-memory-utilization 0.85 \
+    --max-model-len 262144 --max-num-seqs "$MAX_SEQS" --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
     --language-model-only --enable-auto-tool-choice --tool-call-parser qwen3_coder \
     --reasoning-parser qwen3 --enable-prefix-caching --generation-config vllm \
     --no-enable-log-requests
 fi
 
-mkdir -p runs/inference
-if ! pgrep -f baseline/settings-proxy.py >/dev/null; then
-  nohup python3 baseline/settings-proxy.py "runs/inference/$(date -u +%Y%m%dT%H%M%S)" \
-    "$PROXY_PORT" "$VLLM_PORT" > runs/inference/proxy.log 2>&1 &
-fi
+UPSTREAM="$VLLM_PORT" start_proxy python3
 
 echo "Waiting for vLLM (compiled startup takes several minutes)..."
 until curl -sf "http://127.0.0.1:$VLLM_PORT/health" >/dev/null; do
@@ -48,4 +53,4 @@ done
 curl -sf "http://127.0.0.1:$PROXY_PORT/v1/chat/completions" -H 'Content-Type: application/json' \
   -d '{"messages":[{"role":"user","content":"Reply with exactly: OK"}]}' \
   | jq '{content: .choices[0].message.content, usage}'
-echo "Qwen is serving on 127.0.0.1:$PROXY_PORT"
+echo "$MODEL is serving on 127.0.0.1:$PROXY_PORT"
