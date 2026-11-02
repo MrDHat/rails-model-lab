@@ -1,0 +1,35 @@
+{
+  "id": "report-job-queue",
+  "area": "jobs",
+  "status": "pending-user-review",
+  "training_authorized": false,
+  "authored_on": "2026-11-02",
+  "author": "Claude (synthetic task)",
+  "origin": "New scenario and code written from public Rails documentation; not extracted from an application or benchmark.",
+  "sources": [
+    "https://api.rubyonrails.org/v8.1.3/classes/ActiveJob/QueueName/ClassMethods.html"
+  ],
+  "excluded_sources": "No benchmark task text, configs, solutions, graders, generated patches or run outputs used.",
+  "limitations": "The authoring model has seen benchmark task names in this project's run results; independent content is not proof of zero semantic overlap or pretraining contamination.",
+  "proposed_training_boundary": {
+    "input": [
+      "request.md",
+      "starter.rb"
+    ],
+    "target": [
+      "reference.rb"
+    ],
+    "rejected": [
+      "handrolled.rb"
+    ],
+    "review_only": [
+      "README.md",
+      "api_check_test.rb",
+      "behaviour_test.rb",
+      "broken.rb",
+      "provenance.json",
+      "setup.rb"
+    ],
+    "exported": false
+  }
+}

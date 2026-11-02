@@ -1,5 +1,6 @@
 {
   "id": "route-nested-stops",
+  "area": "nested",
   "status": "pending-user-review",
   "training_authorized": false,
   "authored_on": "2026-10-20",
