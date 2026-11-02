@@ -14,6 +14,8 @@ Current status and numbers: [docs/results.md](docs/results.md).
   `benchmark-revision.txt` into `vendor/ai-evals` and installs the harness.
 - `baseline/` runs a baseline on a GCP CPU VM with inference on a Modal GPU.
   See [baseline/README.md](baseline/README.md).
+- `training/` holds Rails exercises for post-training, scored like the
+  benchmark. See [training/README.md](training/README.md).
 - `runs/` (ignored) holds run output.
 
 ## Rules
