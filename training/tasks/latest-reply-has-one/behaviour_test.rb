@@ -18,8 +18,14 @@ class LatestReplyTest < Minitest::Test
     assert_nil Discussion.create!(subject: 'Empty').latest_reply
   end
 
-  def test_can_be_loaded_for_a_list
-    threads = Discussion.includes(:latest_reply).to_a
-    assert_equal ['newest'], threads.map { _1.latest_reply.body }
+  def test_list_loads_in_fixed_queries
+    5.times { |i| Discussion.create!(subject: "T#{i}").replies.create!(body: "r#{i}", posted_at: Time.utc(2026, 2, 1)) }
+    queries = 0
+    counter = ->(*, payload) { queries += 1 unless payload[:name] == 'SCHEMA' }
+    bodies = ActiveSupport::Notifications.subscribed(counter, 'sql.active_record') do
+      Discussion.with_latest_reply.to_a.map { _1.latest_reply.body }
+    end
+    assert_equal ['newest', 'r0', 'r1', 'r2', 'r3', 'r4'], bodies.sort
+    assert_operator queries, :<=, 3
   end
 end
