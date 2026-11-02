@@ -29,6 +29,10 @@ Modal isn't used.
    `QWEN=qwen3.5-27b modal run baseline/modal_qwen.py::download`.
 4. `GPU=0 GCP_PROJECT=your-project bash baseline/create-vm.sh` creates the VM,
    copies the repo and `~/.modal.toml`, and provisions Ruby, Docker and lemans.
+5. `GCP_PROJECT=your-project BILLING_ACCOUNT=your-account bash baseline/billing-cap/setup.sh`
+   adds a budget that stops every VM in the project once spend reaches €260
+   (`CAP` to change). Billing data lags by hours, so it is a
+   backstop, not an exact limit.
 
 ## Run
 
