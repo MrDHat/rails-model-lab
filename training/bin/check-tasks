@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+# Scores every answer file in every task, the way the benchmark scores a fix:
+# behaviour tests must pass, and the API check decides full (1.0) or partial
+# (0.1) credit. A task without an API check gives full credit for passing.
+# Exits non-zero if any answer scores differently from what its role expects.
+#
+#   training/check-tasks.sh            # runs this inside the pinned image
+#   training/check-tasks.sh reservation-dates
+require "open3"
+
+EXPECTED = { "reference.rb" => 1.0, "handrolled.rb" => 0.1, "starter.rb" => 0.0, "broken.rb" => 0.0 }
+tasks_dir = File.expand_path("../tasks", __dir__)
+tasks = ARGV.empty? ? Dir.children(tasks_dir).sort : ARGV
+
+def passes?(dir, test, answer)
+  _, status = Open3.capture2e({ "CANDIDATE_IMPLEMENTATION" => answer }, "ruby", test, "--seed", "1", chdir: dir)
+  status.success?
+end
+
+failures = 0
+puts format("%-30s %-14s %-9s %-9s %s", "task", "answer", "tests", "api", "credit")
+tasks.each do |task|
+  dir = File.join(tasks_dir, task)
+  api_check = File.exist?(File.join(dir, "api_check_test.rb"))
+  EXPECTED.each do |answer, expected|
+    next unless File.exist?(File.join(dir, answer))
+    tests = passes?(dir, "behaviour_test.rb", answer)
+    api = api_check ? passes?(dir, "api_check_test.rb", answer) : nil
+    credit = !tests ? 0.0 : (api == false ? 0.1 : 1.0)
+    ok = credit == expected
+    failures += 1 unless ok
+    puts format("%-30s %-14s %-9s %-9s %.1f%s", task, answer, tests ? "pass" : "fail",
+                api.nil? ? "-" : (api ? "pass" : "fail"), credit, ok ? "" : "  <- expected #{expected}")
+  end
+end
+exit(failures.zero? ? 0 : 1)
