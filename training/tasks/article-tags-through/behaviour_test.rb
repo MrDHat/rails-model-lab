@@ -13,4 +13,16 @@ class EntryLabelsTest < Minitest::Test
     refute entry.labels.where(name: 'unused').exists?
     assert_equal %w[rails ruby], entry.labels.order(:name).pluck(:name)
   end
+
+  def test_each_entry_sees_only_its_own_labels
+    go = Label.create!(name: 'go')
+    sql = Label.create!(name: 'sql')
+    first = Entry.create!(title: 'First')
+    second = Entry.create!(title: 'Second')
+    Labeling.create!(entry: first, label: go)
+    Labeling.create!(entry: second, label: sql)
+    assert_equal ['go'], first.labels.pluck(:name)
+    assert_equal ['sql'], second.labels.pluck(:name)
+    assert_empty Entry.create!(title: 'Bare').labels.to_a
+  end
 end

@@ -5,7 +5,7 @@ training is separately approved. See [the task format](../../README.md).
 
 Use the record's `cache_key_with_version` so the key changes whenever the record is updated.
 
-Full credit needs `cache_key_with_version` (or `cache_key` plus `cache_version`). `handrolled.rb` passes the behaviour tests with a key built from the id and timestamp, so it gets 0.1.
+Full credit needs the record's `cache_key_with_version`, `cache_version` or `cache_key` (which includes the timestamp when cache versioning is off, as here). `handrolled.rb` passes the behaviour tests with a key built from the id and timestamp, so it gets 0.1.
 
 Written from these public references:
 

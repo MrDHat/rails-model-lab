@@ -7,6 +7,15 @@ class SettleJobTest < Minitest::Test
   def setup
     queue.clear
     FailureLog.entries.clear
+    Gateway.settled.clear
+  end
+
+  def test_successful_jobs_settle_and_are_not_logged
+    SettleJob.perform_now(7)
+    SettleJob.perform_now(12)
+    assert_equal [7, 12], Gateway.settled
+    assert_empty FailureLog.entries
+    assert_empty queue
   end
 
   def run_to_end(id)

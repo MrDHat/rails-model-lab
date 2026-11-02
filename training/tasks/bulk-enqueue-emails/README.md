@@ -5,7 +5,7 @@ training is separately approved. See [the task format](../../README.md).
 
 Use `ActiveJob.perform_all_later` so the queue adapter can enqueue a batch at once.
 
-Full credit needs a call to `perform_all_later`. `handrolled.rb` passes the behaviour tests with calling `perform_later` in a loop, so it gets 0.1.
+Full credit needs a call to `perform_all_later`. `handrolled.rb` passes the behaviour tests by handing the jobs straight to the queue adapter's `enqueue_all`, so it gets 0.1. One `perform_later` per user fails the behaviour tests.
 
 Written from these public references:
 

@@ -11,6 +11,16 @@ class CheckoutEventTest < Minitest::Test
 
   def teardown
     PaymentGateway.fail = false
+    PaymentGateway.delay = nil
+  end
+
+  def test_duration_covers_the_charge
+    PaymentGateway.delay = 0.05
+    events = capture { Checkout.call(order_id: 9, cents: 500) }
+    assert_operator events.first.duration, :>=, 45
+    PaymentGateway.fail = true
+    events = capture { assert_raises(RuntimeError) { Checkout.call(order_id: 9, cents: 500) } }
+    assert_operator events.first.duration, :>=, 45
   end
 
   def test_event_on_success
@@ -26,6 +36,8 @@ class CheckoutEventTest < Minitest::Test
     PaymentGateway.fail = true
     events = capture { assert_raises(RuntimeError) { Checkout.call(order_id: 9, cents: 500) } }
     assert_equal 1, events.size
-    assert_equal 'RuntimeError', events.first.payload[:exception].first
+    assert_equal ['RuntimeError', 'card declined'], events.first.payload[:exception]
+    assert_kind_of RuntimeError, events.first.payload[:exception_object]
+    assert_equal 9, events.first.payload[:order_id]
   end
 end

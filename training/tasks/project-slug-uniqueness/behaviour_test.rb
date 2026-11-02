@@ -22,6 +22,10 @@ class ProjectSlugTest < Minitest::Test
   end
 
   def test_blank_slug_is_invalid
-    refute Project.new(account_id: 1, slug: '').valid?
+    ['', '   ', nil].each do |slug|
+      row = Project.new(account_id: 1, slug: slug)
+      refute row.valid?, "accepted #{slug.inspect}"
+      assert row.errors[:slug].any?
+    end
   end
 end

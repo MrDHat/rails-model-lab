@@ -3,9 +3,9 @@
 One Rails exercise. It is not from the benchmark and is not training data until
 training is separately approved. See [the task format](../../README.md).
 
-Use an enum to get predicates, bang methods and positive and negative scopes from one declaration.
+Use an enum to map names to the existing integer codes; queries by name then work too.
 
-Full credit needs an enum for `state`. `handrolled.rb` passes the behaviour tests with hand-written scopes, predicates and bang methods, so it gets 0.1.
+Full credit needs an enum for `state`. `handrolled.rb` passes the behaviour tests with a hand-written attribute type, so it gets 0.1.
 
 Written from these public references:
 

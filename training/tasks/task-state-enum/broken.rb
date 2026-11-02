@@ -1,3 +1,3 @@
 class Todo < ActiveRecord::Base
-  enum :state, { todo: 0, doing: 1, done: 2 }, scopes: false
+  enum :state, { todo: 'todo', doing: 'doing', done: 'done' }
 end

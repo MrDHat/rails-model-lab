@@ -25,6 +25,18 @@ class ResetTokenTest < Minitest::Test
     assert_nil Account.find_by_password_reset_token(token)
   end
 
+  def test_any_digest_change_invalidates
+    token = @account.password_reset_token
+    @account.update!(password_digest: 'digest-two-abcdefghij')
+    assert_nil Account.find_by_password_reset_token(token)
+  end
+
+  def test_token_is_for_its_own_account
+    other = Account.create!(email: 'b@example.com', password_digest: 'digest-other-abcdefghij')
+    assert_equal other, Account.find_by_password_reset_token(other.password_reset_token)
+    assert_equal @account, Account.find_by_password_reset_token(@account.password_reset_token)
+  end
+
   def test_tampered_token
     assert_nil Account.find_by_password_reset_token("#{@account.password_reset_token}x")
   end

@@ -18,11 +18,16 @@ class OrderAutosaveTest < Minitest::Test
   end
 
   def test_invalid_child_blocks_the_save
-    @order.reference = 'A2'
-    @order.line_items.to_a.first.quantity = 0
-    refute @order.save
-    assert @order.errors.any?
-    assert_equal 'A1', Order.find(@order.id).reference
-    assert_equal [1, 2], LineItem.order(:id).pluck(:quantity)
+    [0, -3, 1.5, nil].each do |bad|
+      order = Order.find(@order.id)
+      order.reference = 'A2'
+      first, second = order.line_items.to_a
+      first.quantity = 7
+      second.quantity = bad
+      refute order.save, "saved quantity #{bad.inspect}"
+      assert order.errors.any?
+      assert_equal 'A1', Order.find(@order.id).reference
+      assert_equal [1, 2], LineItem.order(:id).pluck(:quantity)
+    end
   end
 end

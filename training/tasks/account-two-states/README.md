@@ -5,7 +5,7 @@ training is separately approved. See [the task format](../../README.md).
 
 Give each enum a prefix so two enums can both have an `active` value.
 
-Full credit needs enums for both `status` and `billing_state`. `handrolled.rb` passes the behaviour tests with one enum and hand-written methods for the other, so it gets 0.1.
+Full credit needs enums for both `status` and `billing_state`. `handrolled.rb` passes the behaviour tests with one enum and a hand-written attribute type for the other, so it gets 0.1.
 
 Written from these public references:
 

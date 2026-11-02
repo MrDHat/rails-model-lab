@@ -8,10 +8,11 @@ ActiveRecord::Schema.verbose = false
 
 module PaymentGateway
   class << self
-    attr_accessor :fail
+    attr_accessor :fail, :delay
   end
 
   def self.charge(_cents)
+    sleep(delay) if delay
     raise 'card declined' if fail
     :charged
   end

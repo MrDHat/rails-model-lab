@@ -1,16 +1,11 @@
 class Shirt < ActiveRecord::Base
-  SIZES = { 'small' => 's', 'medium' => 'm', 'large' => 'l' }.freeze
+  class SizeType < ActiveRecord::Type::String
+    CODES = { 'small' => 's', 'medium' => 'm', 'large' => 'l' }.freeze
 
-  SIZES.each do |name, code|
-    scope name, -> { where(size: code) }
-    define_method("#{name}?") { self[:size] == code }
+    def cast(value) = value.nil? ? nil : (CODES.key(value.to_s) || value.to_s)
+    def serialize(value) = CODES[cast(value)]
+    def deserialize(value) = CODES.key(value)
   end
 
-  def size
-    SIZES.key(self[:size])
-  end
-
-  def size=(name)
-    self[:size] = SIZES.fetch(name.to_s)
-  end
+  attribute :size, SizeType.new
 end

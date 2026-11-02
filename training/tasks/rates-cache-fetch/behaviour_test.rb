@@ -8,11 +8,13 @@ class RateCardTest < Minitest::Test
     RateCard.cache.clear
     RateSource.calls = 0
     assert_equal({ 'usd' => 1.0 }, RateCard.current)
-    travel 9.minutes do
+    travel 9.minutes + 50.seconds do
       RateCard.current
       assert_equal 1, RateSource.calls
     end
-    travel 11.minutes do
+    travel 10.minutes + 10.seconds do
+      RateCard.current
+      assert_equal 2, RateSource.calls
       RateCard.current
       assert_equal 2, RateSource.calls
     end

@@ -4,6 +4,6 @@ end
 
 module Digest
   def self.send_all(user_ids)
-    user_ids.each { DigestJob.perform_later(_1) }
+    DigestJob.queue_adapter.enqueue_all(user_ids.map { DigestJob.new(_1) })
   end
 end

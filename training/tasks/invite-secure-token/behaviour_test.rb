@@ -10,7 +10,7 @@ class InviteCodeTest < Minitest::Test
   def test_regenerate_saves_a_new_code
     invite = Invite.create!(email: 'b@example.com')
     old = invite.code
-    invite.regenerate_code
+    invite.reissue!
     refute_equal old, invite.reload.code
     assert_match(/\A[a-zA-Z0-9]{24,}\z/, invite.code)
   end

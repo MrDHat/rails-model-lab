@@ -49,12 +49,17 @@ Each folder in `tasks/` holds:
 - `behaviour_test.rb`: does the code work?
 - `api_check_test.rb`: did it use the intended Rails API? Where Rails can say
   what is declared (validators, enum types, association and nested-attribute
-  options), the check asks Rails. Otherwise it reads the answer's syntax tree
-  for the method calls ([`lib/answer_calls.rb`](lib/answer_calls.rb)), so
-  comments and strings don't count.
+  options), the check asks Rails. Otherwise it records the methods the answer
+  actually calls while the behaviour tests run
+  ([`lib/answer_calls.rb`](lib/answer_calls.rb)), so calls in comments,
+  strings or code that never runs don't count. Where Rails offers more than
+  one right way, each is accepted.
 - `setup.rb`: the in-memory schema and the answer under test, shared by both tests.
 - `provenance.json`: area, sources, and which files may become training input,
   target or rejected answer.
+- `attacks/` (some tasks): answers written by reviewers to get credit they
+  shouldn't, each with its expected credit on the first line. They stay in
+  the check so fixed holes stay fixed. They are never training data.
 
 Credit is 0 if the behaviour tests fail, 0.1 if they pass but the API check
 fails, and 1 otherwise. `local-day-window` has no single API to require, so it
@@ -69,4 +74,9 @@ bash training/check-tasks.sh reservation-dates
 
 It runs in a pinned Ruby 3.4 / Rails 8.1.3 image and fails if any answer
 scores differently from its role: reference 1, hand-rolled 0.1, starter and
-broken 0.
+broken 0, and each attack what its first line says.
+
+An API check proves that the intended API ran, not that it did the work: an
+answer that does the job by hand and also makes a pointless call to the right
+method still gets full credit. Watch for that in sampled answers before
+trusting the reward for reinforcement learning.

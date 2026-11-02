@@ -21,8 +21,11 @@ module Gateway
     attr_accessor :down
   end
 
+  def self.settled = (@settled ||= [])
+
   def self.settle(id)
     raise GatewayDown if down || id.negative?
+    settled << id
   end
 end
 

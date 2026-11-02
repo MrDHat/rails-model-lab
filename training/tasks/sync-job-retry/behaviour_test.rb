@@ -16,10 +16,10 @@ class SyncJobTest < Minitest::Test
     Remote.error = Timeout::Error
     attempts = 1
     SyncJob.perform_now
-    retry_job = queue.first
-    assert_in_delta Time.now.to_f + 32, retry_job[:at], 3
     assert_raises(Timeout::Error) do
       while (job = queue.shift)
+        # About 30 seconds before every retry, allowing for Rails' default jitter.
+        assert_in_delta Time.now.to_f + 32, job[:at], 3, "retry #{attempts} delay"
         attempts += 1
         ActiveJob::Base.execute(job)
       end

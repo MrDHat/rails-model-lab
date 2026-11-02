@@ -1,20 +1,19 @@
-require 'prism'
+require 'rbconfig'
+require 'tempfile'
 
-# Method names the answer under test calls, read from its syntax tree so
-# comments and strings don't count. For API checks Rails can't answer by
-# reflection, such as query methods. Calls on an integer literal are recorded
-# as "integer.<name>", so `1.month` is told apart from `date.month`.
+# Names of the methods the answer calls while its task's behaviour tests run.
+# A call counts only if it actually runs, so dead code earns nothing.
+# Calls on integer literals are recorded as `integer.<name>`, e.g. `integer.month`.
 module AnswerCalls
+  TRACE = File.expand_path('answer_trace.rb', __dir__)
+
   def self.names(task_dir)
-    file = File.expand_path(ENV.fetch('CANDIDATE_IMPLEMENTATION', 'reference.rb'), task_dir)
-    names = []
-    nodes = [Prism.parse_file(file).value]
-    while (node = nodes.shift)
-      if node.is_a?(Prism::CallNode)
-        names << (node.receiver.is_a?(Prism::IntegerNode) ? :"integer.#{node.name}" : node.name)
-      end
-      nodes.concat(node.compact_child_nodes)
+    answer = ENV.fetch('CANDIDATE_IMPLEMENTATION', 'reference.rb')
+    Tempfile.create('answer-calls') do |log|
+      system({ 'CANDIDATE_IMPLEMENTATION' => answer, 'ANSWER_CALLS_LOG' => log.path },
+             RbConfig.ruby, '-r', TRACE, 'behaviour_test.rb', '--seed', '1',
+             chdir: task_dir, out: File::NULL, err: File::NULL)
+      File.read(log.path).split.map(&:to_sym)
     end
-    names
   end
 end

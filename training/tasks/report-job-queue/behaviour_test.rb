@@ -7,6 +7,8 @@ class ReportQueueTest < Minitest::Test
     queue.clear
     ReportJob.perform_later(1, 'enterprise')
     ReportJob.perform_later(2, 'starter')
-    assert_equal %w[priority default], queue.map { _1[:queue] }
+    ReportJob.perform_later(55, 'enterprise')
+    ReportJob.perform_later(1, 'starter')
+    assert_equal %w[priority default priority default], queue.map { _1[:queue] }
   end
 end

@@ -14,5 +14,19 @@ class PostTagsTest < Minitest::Test
 
   def test_missing_tags_read_as_empty
     assert_equal [], Post.new.tags
+    post = Post.create!(tags: [])
+    assert_equal [], Post.find(post.id).tags
+    assert_includes [nil, '[]'], raw(post)
+  end
+
+  def test_null_column_reads_as_empty
+    Post.connection.execute('INSERT INTO posts (tags) VALUES (NULL)')
+    assert_equal [], Post.order(:id).last.tags
+  end
+
+  def test_reassigned_tags_are_saved
+    post = Post.create!(tags: %w[ruby])
+    post.update!(tags: %w[go])
+    assert_equal ['go'], JSON.parse(raw(post))
   end
 end

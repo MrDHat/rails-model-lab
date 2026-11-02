@@ -28,4 +28,13 @@ class LatestReplyTest < Minitest::Test
     assert_equal ['newest', 'r0', 'r1', 'r2', 'r3', 'r4'], bodies.sort
     assert_operator queries, :<=, 3
   end
+
+  def test_list_is_a_chainable_relation
+    other = Discussion.create!(subject: 'Other')
+    other.replies.create!(body: 'only', posted_at: Time.utc(2026, 2, 1))
+    list = Discussion.with_latest_reply
+    assert_kind_of ActiveRecord::Relation, list
+    assert_equal ['only'], list.where(subject: 'Other').map { _1.latest_reply.body }
+    assert_equal ['newest'], list.where(subject: 'Hi').map { _1.latest_reply.body }
+  end
 end

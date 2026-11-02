@@ -6,13 +6,10 @@ class ExportTest < Minitest::Test
     Subscriber.delete_all
     Subscriber.insert_all(Array.new(1_201) { { email: "u#{_1}@example.com" } })
     largest = 0
-    counter = ->(*, payload) { largest = [largest, payload[:record_count].to_i].max if payload[:class_name] == 'Subscriber' }
+    counter = ->(*, payload) { largest = [largest, payload[:row_count].to_i].max }
     io = StringIO.new
-    ActiveSupport::Notifications.subscribed(counter, 'instantiation.active_record') { SubscriberExport.call(io) }
-    lines = io.string.lines(chomp: true)
-    assert_equal 1_201, lines.size
-    assert_equal 'u0@example.com', lines.first
-    assert_equal 'u1200@example.com', lines.last
+    ActiveSupport::Notifications.subscribed(counter, 'sql.active_record') { SubscriberExport.call(io) }
+    assert_equal Array.new(1_201) { "u#{_1}@example.com" }, io.string.lines(chomp: true)
     assert_operator largest, :<=, 500
   end
 end

@@ -6,8 +6,11 @@ class DecimalInvoiceLineApiTest < Minitest::Test
     InvoiceLine.validators_on(attribute).grep(ActiveModel::Validations::NumericalityValidator).first
   end
 
-  def test_unit_price_uses_numericality
-    assert numericality(:unit_price)&.options&.key?(:greater_than_or_equal_to)
+  # numericality or comparison both express the lower bound.
+  def test_unit_price_has_a_lower_bound_validator
+    validators = InvoiceLine.validators_on(:unit_price).grep(ActiveModel::Validations::NumericalityValidator) +
+                 InvoiceLine.validators_on(:unit_price).grep(ActiveModel::Validations::ComparisonValidator)
+    assert validators.any? { _1.options.key?(:greater_than_or_equal_to) }
   end
 
   def test_quantity_uses_integer_numericality

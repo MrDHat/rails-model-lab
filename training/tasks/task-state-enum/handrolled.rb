@@ -1,20 +1,11 @@
 class Todo < ActiveRecord::Base
-  STATES = { 'todo' => 0, 'doing' => 1, 'done' => 2 }.freeze
+  class StateType < ActiveModel::Type::Value
+    CODES = { 'todo' => 0, 'doing' => 1, 'done' => 2 }.freeze
 
-  scope :done, -> { where(state: 2) }
-  scope :not_done, -> { where.not(state: 2) }
-
-  def state
-    STATES.key(self[:state])
+    def cast(value) = value.nil? ? nil : (CODES.key(value) || value.to_s)
+    def serialize(value) = CODES[cast(value)]
+    def deserialize(value) = CODES.key(value)
   end
 
-  def state=(name)
-    self[:state] = STATES.fetch(name.to_s)
-  end
-
-  def done? = state == 'done'
-
-  def done!
-    update!(state: 'done')
-  end
+  attribute :state, StateType.new
 end

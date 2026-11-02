@@ -5,7 +5,7 @@ training is separately approved. See [the task format](../../README.md).
 
 Use `where.missing` to find rows whose association is absent, including dangling foreign keys.
 
-Full credit needs a call to `missing`. `handrolled.rb` passes the behaviour tests with a hand-written left join with an IS NULL condition, so it gets 0.1.
+Full credit needs a call to `missing`, or to `left_joins`, which it is built on. `handrolled.rb` passes the behaviour tests with a hand-written SQL condition and subquery, so it gets 0.1.
 
 Written from these public references:
 

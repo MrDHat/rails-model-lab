@@ -13,7 +13,7 @@ class SignupEmailTest < Minitest::Test
   end
 
   def test_rejects_missing_and_malformed
-    [nil, '', 'ana.example.com', 'ana@@example.com', 'ana @example.com', '@example.com'].each { assert_invalid(_1) }
+    [nil, '', 'ana.example.com', 'ana@@example.com', 'ana @example.com', '@example.com', 'ana@exa_mple.com', 'ana@exa mple.com'].each { assert_invalid(_1) }
   end
 
   def test_rejects_overlong_address

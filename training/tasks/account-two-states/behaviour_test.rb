@@ -2,17 +2,31 @@ require 'minitest/autorun'
 require_relative 'setup'
 
 class AccountStatesTest < Minitest::Test
-  def test_both_fields_have_predicates
+  def setup
+    Account.delete_all
+  end
+
+  def codes(row)
+    Account.connection.select_rows("SELECT status, billing_state FROM accounts WHERE id = #{row.id}").first
+  end
+
+  def test_names_read_back
     row = Account.create!(status: :archived, billing_state: :past_due).reload
-    assert row.status_archived?
-    refute row.status_active?
-    assert row.billing_past_due?
-    refute row.billing_active?
+    assert_equal %w[archived past_due], [row.status, row.billing_state]
+    row = Account.create!(status: :active, billing_state: :active).reload
+    assert_equal %w[active active], [row.status, row.billing_state]
   end
 
   def test_codes_are_kept
-    row = Account.create!(status: :archived, billing_state: :past_due)
-    codes = Account.connection.select_rows("SELECT status, billing_state FROM accounts WHERE id = #{row.id}")
-    assert_equal [[1, 1]], codes
+    assert_equal [1, 1], codes(Account.create!(status: :archived, billing_state: :past_due))
+    assert_equal [0, 0], codes(Account.create!(status: :active, billing_state: :active))
+    assert_equal [0, 1], codes(Account.create!(status: :active, billing_state: :past_due))
+  end
+
+  def test_query_by_name
+    late = Account.create!(status: :active, billing_state: :past_due)
+    Account.create!(status: :archived, billing_state: :active)
+    assert_equal [late.id], Account.where(billing_state: :past_due).pluck(:id)
+    assert_equal [late.id], Account.where(status: :active).pluck(:id)
   end
 end

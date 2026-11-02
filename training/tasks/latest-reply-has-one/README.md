@@ -5,7 +5,7 @@ training is separately approved. See [the task format](../../README.md).
 
 Declare a scoped `has_one` so the newest reply can be preloaded like any association.
 
-Full credit needs a `has_one :latest_reply` association. `handrolled.rb` passes the behaviour tests with a method that runs its own query, so it gets 0.1.
+Full credit needs a `has_one :latest_reply` association. `handrolled.rb` passes the behaviour tests by preloading every reply and picking the newest in Ruby, so it gets 0.1.
 
 Written from these public references:
 

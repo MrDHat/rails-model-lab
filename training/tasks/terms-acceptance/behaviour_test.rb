@@ -7,7 +7,8 @@ class TermsAcceptanceTest < Minitest::Test
   end
 
   def test_unticked_or_missing_box_is_rejected
-    [{ terms_of_service: '0' }, {}].each do |extra|
+    [{ terms_of_service: '0' }, {}, { terms_of_service: nil }, { terms_of_service: '' },
+     { terms_of_service: 'yes' }, { terms_of_service: 'no' }].each do |extra|
       row = Member.new(name: 'Ana', **extra)
       refute row.save
       assert row.errors[:terms_of_service].any?

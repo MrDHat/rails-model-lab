@@ -1,6 +1,7 @@
 class Account < ActiveRecord::Base
   generates_token_for :password_reset, expires_in: 15.minutes do
-    password_digest&.last(10)
+    # A fingerprint, not the digest itself: the value is readable inside the token.
+    password_digest && Digest::SHA256.hexdigest(password_digest)
   end
 
   def password_reset_token

@@ -6,6 +6,11 @@ class TicketPriorityTest < Minitest::Test
     Ticket.delete_all
   end
 
+  def test_new_ticket_starts_at_three_before_saving
+    assert_equal 3, Ticket.new.priority
+    assert_equal 3, Ticket.new(title: 'Printer').priority
+  end
+
   def test_new_ticket_defaults_and_persists
     id = Ticket.create!(title: 'Printer').id
     assert_equal 3, Ticket.find(id).priority

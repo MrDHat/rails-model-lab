@@ -5,5 +5,5 @@ class SupportCase < ActiveRecord::Base
   self.table_name = 'cases'
   belongs_to :agent, optional: true
 
-  scope :unassigned, -> { left_joins(:agent).where(agents: { id: nil }) }
+  scope :unassigned, -> { where('agent_id IS NULL OR agent_id NOT IN (SELECT id FROM agents)') }
 end
