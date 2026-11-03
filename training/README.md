@@ -80,3 +80,19 @@ An API check proves that the intended API ran, not that it did the work: an
 answer that does the job by hand and also makes a pointless call to the right
 method still gets full credit. Watch for that in sampled answers before
 trusting the reward for reinforcement learning.
+
+## Run the tasks as an agent
+
+`bin/build-bench` turns the tasks into a lemans bench in `training/bench/`
+(ignored by git), so a model works on them the way it works on the benchmark:
+the same miniswen agent, model transport and limits (90 minutes, 400 steps,
+300 s per command). The agent gets the request and a small project whose
+`app.rb` holds the starter code. It never sees the tests or the API check:
+lemans uploads them only to grade `app.rb`, with the same credit as above.
+
+On the baseline VM, after `baseline/serve-qwen.sh`:
+
+```sh
+bash training/run-bench.sh proof                       # oracle 1.0 and no-op 0 on every task
+QWEN=qwen3.5-27b bash training/run-bench.sh heldout    # validation + sealed, 3 attempts each
+```
