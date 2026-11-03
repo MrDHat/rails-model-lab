@@ -15,6 +15,13 @@ class DecimalInvoiceLineTest < Minitest::Test
     assert_equal BigDecimal('0.335'), row.unit_price
   end
 
+  # Float maths gets these wrong: 1.005 * 3 is 3.0149999... as a Float.
+  def test_rounding_is_exact_decimal_arithmetic
+    { '1.005' => '3.02', '2.675' => '8.03', '0.145' => '0.44', '4.015' => '12.05' }.each do |price, total|
+      assert_equal BigDecimal(total), InvoiceLine.new(unit_price: price, quantity: 3).subtotal, "price #{price}"
+    end
+  end
+
   def test_four_decimal_places_survive_persistence
     row = InvoiceLine.create!(unit_price: '12.3456', quantity: 2).reload
     assert_equal BigDecimal('12.3456'), row.unit_price

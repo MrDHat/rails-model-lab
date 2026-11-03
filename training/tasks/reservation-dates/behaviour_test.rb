@@ -14,7 +14,9 @@ class ReservationDatesTest < Minitest::Test
   end
 
   def test_rejects_reversed_dates
-    refute Reservation.new(pickup_on: '2026-06-10', return_on: '2026-06-09').valid?
+    row = Reservation.new(pickup_on: '2026-06-10', return_on: '2026-06-09')
+    refute row.valid?
+    assert row.errors[:return_on].any?
   end
 
   def test_missing_pickup_does_not_raise
