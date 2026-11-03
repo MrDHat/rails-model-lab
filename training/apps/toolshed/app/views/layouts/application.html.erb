@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Toolshed" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= stylesheet_link_tag :app %>
+  </head>
+  <body>
+    <nav>
+      <%= link_to "Tools", tools_path %> · <%= link_to "Categories", categories_path %>
+      <% if Current.member %>
+        · <%= link_to Current.member.name, member_path(Current.member) %>
+        · <%= button_to "Sign out", session_path, method: :delete %>
+      <% else %>
+        · <%= link_to "Sign in", new_session_path %>
+      <% end %>
+    </nav>
+    <% flash.each do |type, message| %>
+      <p class="flash <%= type %>"><%= message %></p>
+    <% end %>
+    <%= yield %>
+  </body>
+</html>

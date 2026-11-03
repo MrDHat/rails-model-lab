@@ -1,0 +1,4 @@
+Hi <%= @loan.member.name %>,
+
+<%= @loan.tool.name %> (<%= @loan.tool.serial %>) was due back on <%= @loan.due_on.to_fs(:long) %>.
+Please bring it back to the toolshed.

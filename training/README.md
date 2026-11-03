@@ -96,3 +96,36 @@ On the baseline VM, after `baseline/serve-qwen.sh`:
 bash training/run-bench.sh proof                       # oracle 1.0 and no-op 0 on every task
 QWEN=qwen3.5-27b bash training/run-bench.sh heldout    # validation + sealed, 3 attempts each
 ```
+
+## App tasks
+
+The tasks above are each one file. The benchmark's are changes to whole
+Rails apps, so `app-tasks/` holds harder ones: each is a change to
+[Toolshed](apps/toolshed), a small makerspace tool-lending app (members,
+tools, categories, loans, a mailer and a nightly job, with its own test
+suite). A fix usually touches several files: a migration, a model, a
+controller, a view, a mailer.
+
+Each folder in `app-tasks/` holds:
+
+- `request.md`: what the user asks for.
+- `task.json`: which app it runs on, and a title.
+- `reference/`, `handrolled/`, `broken/`: answers, as the files they add or
+  change in the app. Scored 1, 0.1 and 0, like the one-file tasks; the
+  untouched app scores 0.
+- `tests/behaviour_test.rb`: hidden tests, run with `bin/rails test`.
+- `tests/api_check_test.rb`: did the answer use the intended Rails API? It
+  asks Rails where it can, and otherwise reads `AnswerCalls.names`, the
+  methods the answer's changed files called while the hidden tests ran.
+
+[`bin/grade-app`](bin/grade-app) grades an answer. The app's own suite must
+still pass and the hidden tests must pass, or the credit is 0; the API check
+then decides 1 or 0.1.
+
+```sh
+bash training/check-app-tasks.sh             # every answer scores as its role expects
+bash training/check-app-tasks.sh --schema    # first regenerate db/schema.rb for answers that add migrations
+```
+
+`bin/build-bench` adds them to the agentic bench, where the agent gets the
+whole app in `/app`, and `run-bench.sh apps` runs them.

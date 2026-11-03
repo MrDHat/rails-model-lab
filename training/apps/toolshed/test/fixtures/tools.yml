@@ -1,0 +1,10 @@
+drill:
+  category: power
+  name: Cordless drill
+  serial: DR-001
+  daily_fee_cents: 300
+trimmer:
+  category: garden
+  name: Hedge trimmer
+  serial: HT-001
+  daily_fee_cents: 250
