@@ -1,0 +1,7 @@
+<h1>Receipt for order #<%= @order.id %></h1>
+<ul>
+  <% @order.order_items.each do |item| %>
+    <li><%= item.quantity %> x <%= item.product.name %></li>
+  <% end %>
+</ul>
+<p>Total <%= number_to_currency(@order.total_cents / 100.0, unit: "€") %></p>

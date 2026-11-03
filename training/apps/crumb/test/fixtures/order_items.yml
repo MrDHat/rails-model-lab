@@ -1,0 +1,15 @@
+lea_croissants:
+  order: lea_morning
+  product: croissant
+  quantity: 2
+  unit_price_cents: 140
+lea_baguette:
+  order: lea_morning
+  product: baguette
+  quantity: 1
+  unit_price_cents: 120
+tom_baguette:
+  order: tom_evening
+  product: baguette
+  quantity: 1
+  unit_price_cents: 120

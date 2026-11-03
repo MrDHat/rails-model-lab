@@ -1,0 +1,6 @@
+Thanks <%= @order.customer.name %>!
+
+<% @order.order_items.each do |item| -%>
+<%= item.quantity %> x <%= item.product.name %>
+<% end -%>
+Total: <%= number_to_currency(@order.total_cents / 100.0, unit: "€") %>

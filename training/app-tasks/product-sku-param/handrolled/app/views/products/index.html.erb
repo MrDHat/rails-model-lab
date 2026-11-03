@@ -1,0 +1,6 @@
+<h1>Products</h1>
+<ul>
+  <% @products.each do |product| %>
+    <li><%= link_to product.name, product_path(product.sku.downcase) %> · <%= number_to_currency(product.price_cents / 100.0, unit: "€") %></li>
+  <% end %>
+</ul>

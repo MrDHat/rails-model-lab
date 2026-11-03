@@ -1,0 +1,10 @@
+lea_morning:
+  customer: lea
+  status: 0
+  placed_at: <%= Time.utc(2026, 3, 2, 7, 30) %>
+  total_cents: 400
+tom_evening:
+  customer: tom
+  status: 3
+  placed_at: <%= Time.utc(2026, 3, 2, 17, 0) %>
+  total_cents: 120

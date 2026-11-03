@@ -1,0 +1,15 @@
+<h1><%= @member.name %></h1>
+<% if @member.banned? %><p>Banned since <%= @member.banned_at.to_date.to_fs(:long) %></p><% end %>
+<h2>Loans</h2>
+<ul>
+  <% @loans.each do |loan| %>
+    <li id="<%= dom_id(loan) %>">
+      <%= loan.tool.name %> (<%= loan.tool.category.name %>), due <%= loan.due_on.to_fs(:long) %>
+      <% if loan.returned_at %>
+        · returned, fee <%= number_to_currency(loan.fee_cents / 100.0) %>
+      <% elsif Current.member == @member %>
+        <%= button_to "Return", return_loan_path(loan), method: :patch %>
+      <% end %>
+    </li>
+  <% end %>
+</ul>

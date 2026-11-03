@@ -1,0 +1,18 @@
+<h1>Tools</h1>
+<%= link_to "Add a tool", new_tool_path %>
+<%= form_with url: tools_path, method: :get do |f| %>
+  <%= f.search_field :q, value: params[:q] %> <%= f.submit "Search" %>
+<% end %>
+<table>
+  <thead><tr><th>Name</th><th>Category</th><th>Fee per day</th><th>Status</th></tr></thead>
+  <tbody>
+    <% @tools.each do |tool| %>
+      <tr id="<%= dom_id(tool) %>">
+        <td><%= link_to tool.name, tool %></td>
+        <td><%= tool.category.name %></td>
+        <td><%= number_to_currency(tool.daily_fee_cents / 100.0) %></td>
+        <td><%= tool.on_loan? ? "On loan" : "Available" %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

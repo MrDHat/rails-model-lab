@@ -100,16 +100,21 @@ QWEN=qwen3.5-27b bash training/run-bench.sh heldout    # validation + sealed, 3 
 ## App tasks
 
 The tasks above are each one file. The benchmark's are changes to whole
-Rails apps, so `app-tasks/` holds harder ones: each is a change to
-[Toolshed](apps/toolshed), a small makerspace tool-lending app (members,
-tools, categories, loans, a mailer and a nightly job, with its own test
-suite). A fix usually touches several files: a migration, a model, a
-controller, a view, a mailer.
+Rails apps, so `app-tasks/` holds 35 harder ones, each a change to one of two
+small apps with their own test suites:
+
+- [Toolshed](apps/toolshed), a makerspace's tool lending (members, tools,
+  categories, loans, a mailer and a nightly job), 16 tasks.
+- [Crumb](apps/crumb), a Paris bakery's orders: a JSON API for its mobile
+  app, HTML admin pages, a mailer and an SMS job, 19 tasks.
+
+A fix usually touches several files: a migration, a model, a controller, a
+view, a mailer, a job.
 
 Each folder in `app-tasks/` holds:
 
 - `request.md`: what the user asks for.
-- `task.json`: which app it runs on, and a title.
+- `task.json`: which app it runs on, its area and a title.
 - `reference/`, `handrolled/`, `broken/`: answers, as the files they add or
   change in the app. Scored 1, 0.1 and 0, like the one-file tasks; the
   untouched app scores 0.
@@ -126,6 +131,10 @@ then decides 1 or 0.1.
 bash training/check-app-tasks.sh             # every answer scores as its role expects
 bash training/check-app-tasks.sh --schema    # first regenerate db/schema.rb for answers that add migrations
 ```
+
+[`app-splits.json`](app-splits.json) fixes 21 training, 7 validation and 7
+sealed app tasks, with at most one task per area in each held-out set. The
+apps share one `Gemfile.lock`, so one image runs them all.
 
 `bin/build-bench` adds them to the agentic bench, where the agent gets the
 whole app in `/app`, and `run-bench.sh apps` runs them.
