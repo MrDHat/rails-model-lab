@@ -5,7 +5,7 @@
 #   GCP_PROJECT=my-project bash baseline/create-vm.sh
 #
 # Overrides: GCP_ZONE, VM_NAME, MACHINE (g2-standard-16 = 1x L4),
-# PROVISIONING (SPOT or STANDARD), DISK_GB.
+# PROVISIONING (SPOT or STANDARD), DISK_GB, DISK_TYPE.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -15,6 +15,7 @@ VM="${VM_NAME:-rails-qwen}"
 MACHINE="${MACHINE:-g2-standard-16}"
 PROVISIONING="${PROVISIONING:-SPOT}"
 DISK_GB="${DISK_GB:-200}"  # new projects allow 250 GB of SSD-class disk per region
+DISK_TYPE="${DISK_TYPE:-pd-balanced}"  # pd-standard counts against the larger HDD quota
 
 gcloud config set project "$GCP_PROJECT" >/dev/null
 
@@ -23,7 +24,7 @@ if [ "${GPU:-1}" = 0 ]; then
   MACHINE="${MACHINE_CPU:-n2-standard-8}"
   gcloud compute instances create "$VM" --zone "$ZONE" --machine-type "$MACHINE" \
     --image-family ubuntu-2204-lts --image-project ubuntu-os-cloud \
-    --boot-disk-size "${DISK_GB}GB" --boot-disk-type pd-balanced
+    --boot-disk-size "${DISK_GB}GB" --boot-disk-type "$DISK_TYPE"
 else
 # Deep Learning VM images ship the NVIDIA driver, Docker and the container toolkit.
 IMAGE="$(gcloud compute images list --project deeplearning-platform-release \
@@ -42,7 +43,7 @@ gcloud compute instances create "$VM" --zone "$ZONE" \
   --machine-type "$MACHINE" "${spot_flags[@]}" \
   --maintenance-policy TERMINATE \
   --image "$IMAGE" --image-project deeplearning-platform-release \
-  --boot-disk-size "${DISK_GB}GB" --boot-disk-type pd-balanced \
+  --boot-disk-size "${DISK_GB}GB" --boot-disk-type "$DISK_TYPE" \
   --metadata install-nvidia-driver=True
 fi
 

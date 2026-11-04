@@ -15,7 +15,7 @@ sudo apt-get install -y -qq docker-buildx
 sudo usermod -aG docker "$USER"
 if [ "$INFERENCE" = local ]; then
   nvidia-smi --query-gpu=name,memory.total --format=csv
-  sudo docker run --rm --gpus all "$VLLM_IMAGE" nvidia-smi -L >/dev/null 2>&1 \
+  sudo docker run --rm --gpus all --entrypoint nvidia-smi "$VLLM_IMAGE" -L >/dev/null 2>&1 \
     || { echo "Docker cannot see the GPU; check nvidia-container-toolkit" >&2; exit 1; }
 else
   python3 -m venv "$MODAL_VENV"

@@ -36,7 +36,7 @@ if ! docker ps --format '{{.Names}}' | grep -qx qwen-vllm; then
     -v "$HF_CACHE:/root/.cache/huggingface" -e HF_HUB_OFFLINE=1 \
     "$VLLM_IMAGE" "$MODEL" --revision "$MODEL_REVISION" \
     --host 127.0.0.1 --port "$VLLM_PORT" --dtype bfloat16 \
-    --max-model-len 262144 --max-num-seqs "$MAX_SEQS" --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
+    --max-model-len "$MAX_MODEL_LEN" --max-num-seqs "$MAX_SEQS" --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
     --language-model-only --enable-auto-tool-choice --tool-call-parser qwen3_coder \
     --reasoning-parser qwen3 --enable-prefix-caching --generation-config vllm \
     --no-enable-log-requests
