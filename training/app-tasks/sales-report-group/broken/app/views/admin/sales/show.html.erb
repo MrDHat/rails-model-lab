@@ -1,0 +1,9 @@
+<h1>Sales from <%= @from.to_fs(:long) %> to <%= @to.to_fs(:long) %></h1>
+<table>
+  <thead><tr><th>Product</th><th>Units</th><th>Revenue</th></tr></thead>
+  <tbody>
+    <% @rows.each do |name, units, revenue_cents| %>
+      <tr><td><%= name %></td><td><%= units %></td><td><%= number_to_currency(revenue_cents / 100.0, unit: "€") %></td></tr>
+    <% end %>
+  </tbody>
+</table>

@@ -1,0 +1,15 @@
+<h1><%= @tool.name %></h1>
+<p>Serial <%= @tool.serial %> · <%= @tool.category.name %> · <%= number_to_currency(@tool.daily_fee_cents / 100.0) %> per day</p>
+<%= link_to "Edit", edit_tool_path(@tool) %>
+<% if Current.member && !@tool.on_loan? %>
+  <%= form_with url: tool_loans_path(@tool) do |f| %>
+    <%= f.label :due_on, "Due back" %> <%= f.date_field :due_on, value: 7.days.from_now.to_date %>
+    <%= f.submit "Borrow" %>
+  <% end %>
+<% end %>
+<h2>Loan history</h2>
+<ul>
+  <% @loans.each do |loan| %>
+    <li><%= loan.member.name %>: due <%= loan.due_on.to_fs(:long) %><%= ", returned" if loan.returned_at %></li>
+  <% end %>
+</ul>

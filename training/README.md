@@ -80,3 +80,61 @@ An API check proves that the intended API ran, not that it did the work: an
 answer that does the job by hand and also makes a pointless call to the right
 method still gets full credit. Watch for that in sampled answers before
 trusting the reward for reinforcement learning.
+
+## Run the tasks as an agent
+
+`bin/build-bench` turns the tasks into a lemans bench in `training/bench/`
+(ignored by git), so a model works on them the way it works on the benchmark:
+the same miniswen agent, model transport and limits (90 minutes, 400 steps,
+300 s per command). The agent gets the request and a small project whose
+`app.rb` holds the starter code. It never sees the tests or the API check:
+lemans uploads them only to grade `app.rb`, with the same credit as above.
+
+On the baseline VM, after `baseline/serve-qwen.sh`:
+
+```sh
+bash training/run-bench.sh proof                       # oracle 1.0 and no-op 0 on every task
+QWEN=qwen3.5-27b bash training/run-bench.sh heldout    # validation + sealed, 3 attempts each
+```
+
+## App tasks
+
+The tasks above are each one file. The benchmark's are changes to whole
+Rails apps, so `app-tasks/` holds 35 harder ones, each a change to one of two
+small apps with their own test suites:
+
+- [Toolshed](apps/toolshed), a makerspace's tool lending (members, tools,
+  categories, loans, a mailer and a nightly job), 16 tasks.
+- [Crumb](apps/crumb), a Paris bakery's orders: a JSON API for its mobile
+  app, HTML admin pages, a mailer and an SMS job, 19 tasks.
+
+A fix usually touches several files: a migration, a model, a controller, a
+view, a mailer, a job.
+
+Each folder in `app-tasks/` holds:
+
+- `request.md`: what the user asks for.
+- `task.json`: which app it runs on, its area and a title.
+- `reference/`, `handrolled/`, `broken/`: answers, as the files they add or
+  change in the app. Scored 1, 0.1 and 0, like the one-file tasks; the
+  untouched app scores 0.
+- `tests/behaviour_test.rb`: hidden tests, run with `bin/rails test`.
+- `tests/api_check_test.rb`: did the answer use the intended Rails API? It
+  asks Rails where it can, and otherwise reads `AnswerCalls.names`, the
+  methods the answer's changed files called while the hidden tests ran.
+
+[`bin/grade-app`](bin/grade-app) grades an answer. The app's own suite must
+still pass and the hidden tests must pass, or the credit is 0; the API check
+then decides 1 or 0.1.
+
+```sh
+bash training/check-app-tasks.sh             # every answer scores as its role expects
+bash training/check-app-tasks.sh --schema    # first regenerate db/schema.rb for answers that add migrations
+```
+
+[`app-splits.json`](app-splits.json) fixes 21 training, 7 validation and 7
+sealed app tasks, with at most one task per area in each held-out set. The
+apps share one `Gemfile.lock`, so one image runs them all.
+
+`bin/build-bench` adds them to the agentic bench, where the agent gets the
+whole app in `/app`, and `run-bench.sh apps` runs them.

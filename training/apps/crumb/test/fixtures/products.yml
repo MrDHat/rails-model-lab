@@ -1,0 +1,16 @@
+croissant:
+  name: Croissant
+  sku: CRO
+  price_cents: 140
+  stock: 40
+baguette:
+  name: Baguette
+  sku: BAG
+  price_cents: 120
+  stock: 60
+eclair:
+  name: Éclair
+  sku: ECL
+  price_cents: 350
+  stock: 0
+  active: false

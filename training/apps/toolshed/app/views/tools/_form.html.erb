@@ -1,0 +1,10 @@
+<%= form_with model: tool do |f| %>
+  <% tool.errors.full_messages.each do |message| %>
+    <p class="error"><%= message %></p>
+  <% end %>
+  <p><%= f.label :name %> <%= f.text_field :name %></p>
+  <p><%= f.label :serial %> <%= f.text_field :serial %></p>
+  <p><%= f.label :category_id %> <%= f.collection_select :category_id, Category.order(:name), :id, :name %></p>
+  <p><%= f.label :daily_fee_cents, "Fee per day (cents)" %> <%= f.number_field :daily_fee_cents %></p>
+  <%= f.submit %>
+<% end %>

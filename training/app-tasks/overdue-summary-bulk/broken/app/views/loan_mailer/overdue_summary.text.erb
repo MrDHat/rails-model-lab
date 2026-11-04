@@ -1,0 +1,5 @@
+Hi <%= @member.name %>, these tools are overdue:
+
+<% @loans.each do |loan| -%>
+<%= loan.tool.name %>, due <%= loan.due_on.to_fs(:long) %>
+<% end -%>

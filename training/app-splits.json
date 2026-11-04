@@ -1,0 +1,44 @@
+{
+  "note": "Fixed 21/7/7 split of the app tasks, seeded 20261103: at most one task per area in each held-out set, at least one training task per area, three or four of each app per held-out set. Never train or tune on sealed tasks.",
+  "train": [
+    "api-token-auth",
+    "checkout-form-object",
+    "loan-return-lock",
+    "magic-link-sign-in",
+    "order-api-client-current",
+    "order-items-nested",
+    "order-optimistic-lock",
+    "order-placed-ago",
+    "orders-export-batches",
+    "orders-paris-day",
+    "overdue-summary-bulk",
+    "price-bump-update-all",
+    "product-sku-param",
+    "products-json-cache",
+    "sales-report-group",
+    "tool-condition-enum",
+    "tool-loan-counts",
+    "tool-name-unique-per-category",
+    "tool-params-expect",
+    "tool-serial-normalizes",
+    "tools-bulk-import"
+  ],
+  "validation": [
+    "borrow-rate-limit",
+    "category-delete-guard",
+    "member-ban-returns-transaction",
+    "order-status-enum",
+    "pickup-sms-retry",
+    "stock-feed-upsert",
+    "tool-search-like"
+  ],
+  "sealed": [
+    "api-errors-rescue-from",
+    "loan-due-reminder",
+    "member-borrowed-tools-through",
+    "member-page-preload",
+    "order-notes-encrypted",
+    "pickup-time-comparison",
+    "receipt-signed-link"
+  ]
+}

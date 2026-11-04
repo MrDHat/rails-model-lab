@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+# Scores every answer to every app task with bin/grade-app and exits non-zero
+# if any scores differently from its role: reference 1, hand-rolled 0.1,
+# broken 0, and the untouched starting app 0.
+#
+# Each answer is a folder of files laid over the task's app. With --schema,
+# answers that add migrations first get their db/schema.rb regenerated.
+#
+#   training/check-app-tasks.sh [--schema] [task ...]
+require "etc"
+require "fileutils"
+require "json"
+require "open3"
+require "tmpdir"
+
+ROOT = File.expand_path("..", __dir__)
+EXPECTED = { "starter" => 0.0, "reference" => 1.0, "handrolled" => 0.1, "broken" => 0.0 }
+schema = ARGV.delete("--schema")
+tasks_dir = File.join(ROOT, "app-tasks")
+tasks = ARGV.empty? ? Dir.children(tasks_dir).sort : ARGV
+
+def sh(*cmd, dir:)
+  out, status = Open3.capture2e(*cmd, chdir: dir)
+  raise "#{cmd.join(' ')} failed in #{dir}:\n#{out}" unless status.success?
+  out
+end
+
+# A fresh copy of the task's app as a git repo, with the answer laid over it.
+def prepare(task_dir, answer, tmp)
+  app = File.join(tmp, "app")
+  FileUtils.cp_r(File.join(ROOT, "apps", JSON.parse(File.read(File.join(task_dir, "task.json"))).fetch("app")) + "/.", app)
+  sh("git", "init", "-q", dir: app)
+  sh("git", "add", "-A", dir: app)
+  sh("git", "-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "start", dir: app)
+  overlay = File.join(task_dir, answer)
+  FileUtils.cp_r(overlay + "/.", app) if File.directory?(overlay)
+  app
+end
+
+if schema
+  tasks.each do |task|
+    task_dir = File.join(tasks_dir, task)
+    EXPECTED.each_key do |answer|
+      next unless Dir.exist?(File.join(task_dir, answer, "db", "migrate"))
+      Dir.mktmpdir do |tmp|
+        app = prepare(task_dir, answer, tmp)
+        sh("bin/rails", "db:migrate", dir: app)
+        FileUtils.cp(File.join(app, "db", "schema.rb"), File.join(task_dir, answer, "db", "schema.rb"))
+        puts "#{task}/#{answer}: wrote db/schema.rb"
+      end
+    end
+  end
+end
+
+jobs = tasks.flat_map { |task| EXPECTED.map { |answer, expected| [task, answer, expected] } }
+jobs.select! { |task, answer, _| answer == "starter" || Dir.exist?(File.join(tasks_dir, task, answer)) }
+queue = Queue.new
+jobs.each_index { queue << _1 }
+rows = Array.new(jobs.size)
+Array.new([Etc.nprocessors, 4].min) do
+  Thread.new do
+    while (i = queue.pop(true) rescue nil)
+      task, answer, expected = jobs[i]
+      Dir.mktmpdir do |tmp|
+        app = prepare(File.join(tasks_dir, task), answer, tmp)
+        logs = File.join(ROOT, "..", "runs", "app-tasks", task, answer)
+        FileUtils.rm_rf(logs)
+        out = sh(File.join(ROOT, "bin", "grade-app"), app, File.join(tasks_dir, task, "tests"), logs, dir: tmp)
+        rows[i] = [task, answer, out.strip.to_f, expected]
+      end
+    end
+  end
+end.each(&:join)
+
+failures = 0
+rows.each do |task, answer, credit, expected|
+  failures += 1 unless credit == expected
+  puts format("%-28s %-12s %.1f%s", task, answer, credit, credit == expected ? "" : "  <- expected #{expected}")
+end
+exit(failures.zero? ? 0 : 1)

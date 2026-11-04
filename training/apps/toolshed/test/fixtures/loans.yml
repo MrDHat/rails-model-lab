@@ -1,0 +1,4 @@
+ana_drill:
+  member: ana
+  tool: drill
+  due_on: <%= Date.current + 3 %>

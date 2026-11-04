@@ -1,0 +1,3 @@
+Hi <%= @loan.member.name %>,
+
+<%= @loan.tool.name %> (<%= @loan.tool.serial %>) is due back tomorrow, <%= @loan.due_on.to_fs(:long) %>.

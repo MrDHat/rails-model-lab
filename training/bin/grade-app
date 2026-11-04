@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+# Grades an answer to an app task the way the benchmark grades a fix, and
+# prints the credit (0, 0.1 or 1).
+#
+#   grade-app APP_DIR TASK_TESTS_DIR [LOG_DIR]
+#
+# APP_DIR is a git repo whose first commit is the task's starting point.
+# The app's own test suite must still pass and the hidden behaviour tests
+# must pass, or the credit is 0. The API check then decides 1 or 0.1. It can
+# read AnswerCalls.names: the methods the answer's changed files called while
+# the behaviour tests ran.
+require "fileutils"
+require "open3"
+require "tmpdir"
+
+app, tests, logs = ARGV
+abort("usage: grade-app APP_DIR TASK_TESTS_DIR [LOG_DIR]") unless app && tests
+logs ||= Dir.mktmpdir
+FileUtils.mkdir_p(logs)
+trace = File.expand_path("../lib/app_trace.rb", __dir__)
+
+def capture(*cmd, dir:, env: {})
+  out, status = Open3.capture2e(env, *cmd, chdir: dir)
+  [out, status.success?]
+end
+
+root = capture("git", "rev-list", "--max-parents=0", "HEAD", dir: app).first.lines.last.strip
+changed = capture("git", "diff", "--name-only", root, dir: app).first.lines +
+          capture("git", "ls-files", "--others", "--exclude-standard", dir: app).first.lines
+answer_files = changed.map(&:strip).grep(%r{\A(app|config|lib|db)/.*\.(rb|erb)\z}).map { File.join(File.realpath(app), _1) }.select { File.file?(_1) }
+File.write(File.join(logs, "answer_files.txt"), answer_files.join("\n"))
+
+grade = lambda do
+  # Hidden tests go in their own folder; the app's own suite runs without them.
+  hidden = File.join(app, "test", "hidden")
+  FileUtils.rm_rf(hidden)
+  out, ok = capture("bin/rails", "test", dir: app)
+  File.write(File.join(logs, "app_suite.log"), out)
+  return 0.0 unless ok
+
+  FileUtils.mkdir_p(hidden)
+  FileUtils.cp(Dir[File.join(tests, "*.rb")] + [File.expand_path("../lib/app_calls.rb", __dir__)], hidden)
+  calls = File.join(logs, "answer_calls.txt")
+  env = { "ANSWER_FILES" => File.join(logs, "answer_files.txt"), "ANSWER_CALLS_LOG" => calls,
+          "RUBYOPT" => "#{ENV['RUBYOPT']} -r#{trace}".strip }
+  out, ok = capture("bin/rails", "test", "test/hidden/behaviour_test.rb", dir: app, env: env)
+  File.write(File.join(logs, "behaviour.log"), out)
+  return 0.0 unless ok
+  return 1.0 unless File.exist?(File.join(hidden, "api_check_test.rb"))
+
+  out, ok = capture("bin/rails", "test", "test/hidden/api_check_test.rb", dir: app, env: { "ANSWER_CALLS_LOG" => calls })
+  File.write(File.join(logs, "api_check.log"), out)
+  ok ? 1.0 : 0.1
+ensure
+  FileUtils.rm_rf(File.join(app, "test", "hidden"))
+end
+
+puts grade.call
