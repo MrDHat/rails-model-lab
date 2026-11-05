@@ -53,23 +53,36 @@ def conversation(example):
 
 
 def tokenize(tokenizer, example):
-    """Token ids and labels; labels are -100 outside the assistant turns."""
+    """(token ids, labels) sequences; labels are -100 outside the assistant turns.
+
+    The chat template drops the reasoning of assistant turns that come before
+    the latest user message. So a transcript with a user message partway
+    through (the agent framework nudging the model) becomes one sequence per
+    user message, each training only the turns that followed it, rendered as
+    the model saw them when it generated them.
+    """
     messages, tools = conversation(example), example["tools"]
     render = lambda msgs, gen: tokenizer.apply_chat_template(msgs, tools=tools, tokenize=False,
                                                             add_generation_prompt=gen, enable_thinking=True)
-    text = render(messages, False)
-    spans = []
-    for i, message in enumerate(messages):
-        if message["role"] != "assistant":
+    users = [i for i, message in enumerate(messages) if message["role"] == "user"] + [len(messages)]
+    sequences = []
+    for start, stop in zip(users, users[1:]):
+        text = render(messages[:stop], False)
+        spans = []
+        for i in range(start, stop):
+            if messages[i]["role"] != "assistant":
+                continue
+            prefix, upto = render(messages[:i], True), render(messages[:i + 1], False)
+            # Each turn must render the same way inside the sequence, or the spans would be off.
+            assert upto.startswith(prefix) and text.startswith(upto), f"template drift at message {i}"
+            spans.append((len(prefix), len(upto)))
+        if not spans:
             continue
-        prefix, upto = render(messages[:i], True), render(messages[:i + 1], False)
-        # Each turn must render the same way inside the whole transcript, or the spans would be off.
-        assert upto.startswith(prefix) and text.startswith(upto), f"template drift at message {i}"
-        spans.append((len(prefix), len(upto)))
-    encoded = tokenizer(text, return_offsets_mapping=True, add_special_tokens=False)
-    labels = [token if any(start <= a < end for start, end in spans) else -100
-              for token, (a, _) in zip(encoded["input_ids"], encoded["offset_mapping"])]
-    return encoded["input_ids"], labels
+        encoded = tokenizer(text, return_offsets_mapping=True, add_special_tokens=False)
+        labels = [token if any(start <= a < end for start, end in spans) else -100
+                  for token, (a, _) in zip(encoded["input_ids"], encoded["offset_mapping"])]
+        sequences.append((encoded["input_ids"], labels))
+    return sequences
 
 
 def chunked_loss(hidden, lm_head, labels, chunk=4096):
@@ -92,12 +105,12 @@ def main(data_path, out_dir):
 
     examples, dropped = [], 0
     for line in open(data_path):
-        ids, labels = tokenize(tokenizer, json.loads(line))
-        if len(ids) > MAX_TOKENS:
-            dropped += 1
-            continue
-        examples.append((ids, labels))
-    print(f"{len(examples)} examples, {dropped} longer than {MAX_TOKENS} tokens dropped, "
+        for ids, labels in tokenize(tokenizer, json.loads(line)):
+            if len(ids) > MAX_TOKENS:
+                dropped += 1
+                continue
+            examples.append((ids, labels))
+    print(f"{len(examples)} sequences, {dropped} longer than {MAX_TOKENS} tokens dropped, "
           f"{sum(len(i) for i, _ in examples)} tokens, "
           f"{sum(sum(l != -100 for l in labels) for _, labels in examples)} trained on", flush=True)
 
