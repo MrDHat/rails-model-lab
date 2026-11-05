@@ -140,6 +140,49 @@ def sequence_loss(decoder, lm_head, ids, labels):
     return chunked_loss(hidden, lm_head, torch.tensor([labels], device=0))
 
 
+def load_model():
+    """Qwen3.5-27B in bf16 with a fresh LoRA; returns the model, its decoder, its output head
+    and the trainable parameters."""
+    model = AutoModelForImageTextToText.from_pretrained(MODEL, revision=REVISION, dtype=torch.bfloat16,
+                                                        device_map={"": 0})
+    model.config.use_cache = False
+    model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+    model.enable_input_require_grads()
+    # Every linear layer of the language model; the vision tower and output head stay frozen.
+    lora = LoraConfig(r=RANK, lora_alpha=2 * RANK, lora_dropout=0.0, target_modules="all-linear",
+                      exclude_modules=r".*(visual|vision|lm_head|mtp).*", task_type="CAUSAL_LM")
+    model = get_peft_model(model, lora)
+    model.print_trainable_parameters()
+    chunk_mlps(model)
+    params = [p for p in model.parameters() if p.requires_grad]
+    return model, model.base_model.model.model.language_model, model.base_model.model.lm_head, params
+
+
+def schedule(total_steps):
+    """Linear warmup over the first tenth, then cosine decay to zero."""
+    warmup = max(1, total_steps // 10)
+    return lambda step: min(1.0, (step + 1) / warmup) * 0.5 * (1 + math.cos(math.pi * min(step, total_steps) / total_steps))
+
+
+def save_checkpoint(ckpt, model, optimizer, scheduler, step):
+    ckpt.mkdir(exist_ok=True)
+    torch.save({"adapter": get_peft_model_state_dict(model), "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict(), "step": step}, ckpt / "state.tmp")
+    os.replace(ckpt / "state.tmp", ckpt / "state.pt")
+
+
+def load_checkpoint(ckpt, model, optimizer, scheduler):
+    """The step to continue from: 0, or the last saved one."""
+    if not (ckpt / "state.pt").exists():
+        return 0
+    state = torch.load(ckpt / "state.pt", weights_only=False)
+    set_peft_model_state_dict(model, state["adapter"])
+    optimizer.load_state_dict(state["optimizer"])
+    scheduler.load_state_dict(state["scheduler"])
+    print(f"resumed at step {state['step']}", flush=True)
+    return state["step"]
+
+
 def main(data_path, out_dir):
     out, ckpt = Path(out_dir), Path(out_dir) / "checkpoint"
     out.mkdir(parents=True, exist_ok=True)
@@ -157,19 +200,7 @@ def main(data_path, out_dir):
           f"{sum(len(i) for i, _ in examples)} tokens, "
           f"{sum(sum(l != -100 for l in labels) for _, labels in examples)} trained on", flush=True)
 
-    model = AutoModelForImageTextToText.from_pretrained(MODEL, revision=REVISION, dtype=torch.bfloat16,
-                                                        device_map={"": 0})
-    model.config.use_cache = False
-    model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
-    model.enable_input_require_grads()
-    # Every linear layer of the language model; the vision tower and output head stay frozen.
-    lora = LoraConfig(r=RANK, lora_alpha=2 * RANK, lora_dropout=0.0, target_modules="all-linear",
-                      exclude_modules=r".*(visual|vision|lm_head|mtp).*", task_type="CAUSAL_LM")
-    model = get_peft_model(model, lora)
-    model.print_trainable_parameters()
-    chunk_mlps(model)
-    decoder = model.base_model.model.model.language_model
-    lm_head = model.base_model.model.lm_head
+    model, decoder, lm_head, params = load_model()
     if PROBE_TOKENS:
         model.train()
         ids = torch.randint(0, 150000, (PROBE_TOKENS,)).tolist()
@@ -179,26 +210,16 @@ def main(data_path, out_dir):
               f"{time.time() - started:.0f}s", flush=True)
         return
 
-    params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=LR, weight_decay=0.0, betas=(0.9, 0.99))
     total_steps = math.ceil(len(examples) * EPOCHS / ACCUMULATE)
-    warmup = max(1, total_steps // 10)
-    schedule = lambda step: min(1.0, (step + 1) / warmup) * 0.5 * (1 + math.cos(math.pi * min(step, total_steps) / total_steps))
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, schedule)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, schedule(total_steps))
 
     order = []
     for epoch in range(EPOCHS):
         epoch_order = list(range(len(examples)))
         random.Random(SEED + epoch).shuffle(epoch_order)
         order += epoch_order
-    step = 0
-    if (ckpt / "state.pt").exists():
-        state = torch.load(ckpt / "state.pt", weights_only=False)
-        set_peft_model_state_dict(model, state["adapter"])
-        optimizer.load_state_dict(state["optimizer"])
-        scheduler.load_state_dict(state["scheduler"])
-        step = state["step"]
-        print(f"resumed at step {step} of {total_steps}", flush=True)
+    step = load_checkpoint(ckpt, model, optimizer, scheduler)
 
     model.train()
     started = time.time()
@@ -218,10 +239,7 @@ def main(data_path, out_dir):
         print(f"step {step}/{total_steps} loss {sum(losses) / len(losses):.4f} "
               f"lr {scheduler.get_last_lr()[0]:.2e} {time.time() - started:.0f}s", flush=True)
         if step % SAVE_EVERY == 0 or step == total_steps:
-            ckpt.mkdir(exist_ok=True)
-            torch.save({"adapter": get_peft_model_state_dict(model), "optimizer": optimizer.state_dict(),
-                        "scheduler": scheduler.state_dict(), "step": step}, ckpt / "state.tmp")
-            os.replace(ckpt / "state.tmp", ckpt / "state.pt")
+            save_checkpoint(ckpt, model, optimizer, scheduler, step)
 
     model.save_pretrained(out / "adapter")
     print(f"saved {out / 'adapter'}", flush=True)
