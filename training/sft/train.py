@@ -37,7 +37,11 @@ MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "32768"))
 # (a 32K-token transcript checkpoints about 21 GB of activations).
 OFFLOAD_ABOVE = int(os.environ.get("OFFLOAD_ABOVE", "4096"))
 RANK = int(os.environ.get("LORA_RANK", "32"))
-SAVE_EVERY = int(os.environ.get("SAVE_EVERY", "4"))
+SAVE_EVERY = int(os.environ.get("SAVE_EVERY", "2"))
+# Run one forward and backward pass on a random sequence this long, print the peak
+# GPU memory and exit: a quick check that the longest transcripts fit.
+PROBE_TOKENS = int(os.environ.get("PROBE_TOKENS", "0"))
+MLP_CHUNK = 4096
 SEED = 1234
 
 
@@ -108,6 +112,34 @@ def chunked_loss(hidden, lm_head, labels, chunk=1024):
     return total / count
 
 
+def chunk_mlps(model):
+    """Runs each MLP over MLP_CHUNK tokens at a time, each piece checkpointed.
+
+    The MLP works token by token, so this gives the same result. Without it,
+    recomputing one layer in the backward pass of a 30K-token transcript
+    builds several 2 GB intermediates at once and runs out of memory.
+    """
+    for name, module in model.named_modules():
+        if name.endswith(".mlp") and "language_model" in name:
+            forward = module.forward
+
+            def chunked(x, forward=forward):
+                if x.shape[1] <= MLP_CHUNK:
+                    return forward(x)
+                return torch.cat([checkpoint(forward, x[:, s:s + MLP_CHUNK], use_reentrant=False)
+                                  for s in range(0, x.shape[1], MLP_CHUNK)], dim=1)
+            module.forward = chunked
+
+
+def sequence_loss(decoder, lm_head, ids, labels):
+    offload = torch.autograd.graph.save_on_cpu(pin_memory=True) if len(ids) > OFFLOAD_ABOVE \
+        else contextlib.nullcontext()
+    with offload:
+        hidden = decoder(input_ids=torch.tensor([ids], device=0)).last_hidden_state
+    # Outside the offload hook: the checkpointed loss chunks keep nothing large anyway.
+    return chunked_loss(hidden, lm_head, torch.tensor([labels], device=0))
+
+
 def main(data_path, out_dir):
     out, ckpt = Path(out_dir), Path(out_dir) / "checkpoint"
     out.mkdir(parents=True, exist_ok=True)
@@ -135,6 +167,17 @@ def main(data_path, out_dir):
                       exclude_modules=r".*(visual|vision|lm_head|mtp).*", task_type="CAUSAL_LM")
     model = get_peft_model(model, lora)
     model.print_trainable_parameters()
+    chunk_mlps(model)
+    decoder = model.base_model.model.model.language_model
+    lm_head = model.base_model.model.lm_head
+    if PROBE_TOKENS:
+        model.train()
+        ids = torch.randint(0, 150000, (PROBE_TOKENS,)).tolist()
+        started = time.time()
+        sequence_loss(decoder, lm_head, ids, ids).backward()
+        print(f"probe {PROBE_TOKENS} tokens: peak {torch.cuda.max_memory_allocated() / 2**30:.1f} GiB, "
+              f"{time.time() - started:.0f}s", flush=True)
+        return
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=LR, weight_decay=0.0, betas=(0.9, 0.99))
@@ -158,21 +201,13 @@ def main(data_path, out_dir):
         print(f"resumed at step {step} of {total_steps}", flush=True)
 
     model.train()
-    decoder = model.base_model.model.model.language_model
-    lm_head = model.base_model.model.lm_head
     started = time.time()
     while step < total_steps:
         batch = order[step * ACCUMULATE:(step + 1) * ACCUMULATE]
         losses = []
         for index in batch:
             ids, labels = examples[index]
-            ids_t = torch.tensor([ids], device=0)
-            offload = torch.autograd.graph.save_on_cpu(pin_memory=True) if len(ids) > OFFLOAD_ABOVE \
-                else contextlib.nullcontext()
-            with offload:
-                hidden = decoder(input_ids=ids_t).last_hidden_state
-            # Outside the offload hook: the checkpointed loss chunks keep nothing large anyway.
-            loss = chunked_loss(hidden, lm_head, torch.tensor([labels], device=0))
+            loss = sequence_loss(decoder, lm_head, ids, labels)
             (loss / len(batch)).backward()
             losses.append(loss.item())
         torch.nn.utils.clip_grad_norm_(params, 1.0)
