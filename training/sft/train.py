@@ -171,7 +171,8 @@ def main(data_path, out_dir):
                 else contextlib.nullcontext()
             with offload:
                 hidden = decoder(input_ids=ids_t).last_hidden_state
-                loss = chunked_loss(hidden, lm_head, torch.tensor([labels], device=0))
+            # Outside the offload hook: the checkpointed loss chunks keep nothing large anyway.
+            loss = chunked_loss(hidden, lm_head, torch.tensor([labels], device=0))
             (loss / len(batch)).backward()
             losses.append(loss.item())
         torch.nn.utils.clip_grad_norm_(params, 1.0)
