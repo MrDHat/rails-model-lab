@@ -5,6 +5,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source baseline/settings.sh
 
+if [ -e "$LOCAL_SSD" ] && ! mountpoint -q /mnt/localssd; then
+  sudo mkfs.ext4 -q -F "$LOCAL_SSD"
+  sudo mkdir -p /mnt/localssd
+  sudo mount -o discard,defaults "$LOCAL_SSD" /mnt/localssd
+  sudo chown "$USER" /mnt/localssd
+fi
+
 sudo apt-get update -qq
 sudo apt-get install -y -qq build-essential git curl tmux jq libssl-dev libyaml-dev \
   zlib1g-dev libffi-dev libreadline-dev python3 python3-venv
@@ -39,6 +46,7 @@ gem install bundler --no-document --conservative
 bash bin/setup-benchmark
 
 [ "$INFERENCE" = local ] || { echo "Provisioned (inference on Modal)."; exit 0; }
+[ -z "${WEIGHTS:-}" ] || { echo "Provisioned (serving local weights from $WEIGHTS)."; exit 0; }
 mkdir -p "$HF_CACHE"
 sudo docker pull "$VLLM_IMAGE"
 sudo docker run --rm -v "$HF_CACHE:/root/.cache/huggingface" --entrypoint python3 "$VLLM_IMAGE" -c \

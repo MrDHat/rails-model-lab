@@ -19,6 +19,10 @@ import uuid
 SETTINGS = {"temperature": 0.6, "top_p": 0.95, "top_k": 20, "seed": 42,
             "presence_penalty": 0, "repetition_penalty": 1.0,
             "chat_template_kwargs": {"enable_thinking": True}, "max_tokens": 32768}
+# Collecting training data wants attempts at the same task to differ, so it
+# drops the fixed seed. Evaluations keep it.
+if os.environ.get("SAMPLING_SEED") == "none":
+    del SETTINGS["seed"]
 MODEL = os.environ["MODEL"]  # from baseline/settings.sh
 TIMEOUT = 1560
 
