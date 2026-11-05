@@ -20,7 +20,7 @@ docker rm -f qwen-vllm >/dev/null 2>&1 || true
 in_image() {
   docker run --rm --gpus all --ipc host --entrypoint bash \
     -v "$HF_CACHE:/root/.cache/huggingface" -v "$PWD:/work" -w /work/training/sft \
-    -e HF_HUB_OFFLINE=1 -e PYTHONUNBUFFERED=1 "$VLLM_IMAGE" -c \
+    -e HF_HUB_OFFLINE=1 -e PYTHONUNBUFFERED=1 -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True "$VLLM_IMAGE" -c \
     "pip install -q 'peft>=0.17,<1' flash-linear-attention 2>&1 | tail -1; $1"
 }
 [ -d "$out/adapter" ] || in_image "python3 train.py /work/$out/data.jsonl /work/$out" 2>&1 | tee -a "$out/train.log"

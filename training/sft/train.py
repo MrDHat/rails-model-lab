@@ -22,6 +22,7 @@ from pathlib import Path
 
 import torch
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 from peft import LoraConfig, get_peft_model, set_peft_model_state_dict, get_peft_model_state_dict
 from transformers import AutoModelForImageTextToText, AutoTokenizer
 
@@ -32,8 +33,9 @@ LR = float(os.environ.get("LR", "1e-4"))
 ACCUMULATE = int(os.environ.get("ACCUMULATE", "8"))
 MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "32768"))
 # Above this length the activations saved for the backward pass go to CPU
-# memory, so a long transcript fits beside the 54 GB of bf16 weights.
-OFFLOAD_ABOVE = int(os.environ.get("OFFLOAD_ABOVE", "16384"))
+# memory, so a long transcript fits beside the 54 GB of bf16 weights
+# (a 32K-token transcript checkpoints about 21 GB of activations).
+OFFLOAD_ABOVE = int(os.environ.get("OFFLOAD_ABOVE", "4096"))
 RANK = int(os.environ.get("LORA_RANK", "32"))
 SAVE_EVERY = int(os.environ.get("SAVE_EVERY", "4"))
 SEED = 1234
@@ -85,15 +87,24 @@ def tokenize(tokenizer, example):
     return sequences
 
 
-def chunked_loss(hidden, lm_head, labels, chunk=4096):
-    """Mean cross-entropy over labelled positions without materialising all logits."""
+def chunk_loss(lm_head, hidden, labels):
+    logits = lm_head(hidden).float()
+    return F.cross_entropy(logits.flatten(0, 1), labels.flatten(), ignore_index=-100, reduction="sum")
+
+
+def chunked_loss(hidden, lm_head, labels, chunk=1024):
+    """Mean cross-entropy over labelled positions without materialising all logits.
+
+    Each chunk is checkpointed, so its logits (1.5 GB per 1K tokens with the
+    248K vocabulary) are recomputed in the backward pass rather than kept.
+    """
     hidden, labels = hidden[:, :-1], labels[:, 1:]
     total, count = hidden.new_zeros((), dtype=torch.float32), (labels != -100).sum()
     for start in range(0, hidden.shape[1], chunk):
         piece = labels[:, start:start + chunk]
         if (piece != -100).any():
-            logits = lm_head(hidden[:, start:start + chunk]).float()
-            total = total + F.cross_entropy(logits.flatten(0, 1), piece.flatten(), ignore_index=-100, reduction="sum")
+            total = total + checkpoint(chunk_loss, lm_head, hidden[:, start:start + chunk], piece,
+                                       use_reentrant=False)
     return total / count
 
 
