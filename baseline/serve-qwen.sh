@@ -29,12 +29,18 @@ if [ "$INFERENCE" = modal ]; then
   exit 0
 fi
 
+# A model file with WEIGHTS serves local (e.g. fine-tuned) weights under the name MODEL.
+if [ -n "${WEIGHTS:-}" ]; then
+  model_args=("$WEIGHTS" --served-model-name "$MODEL")
+else
+  model_args=("$MODEL" --revision "$MODEL_REVISION")
+fi
 if ! docker ps --format '{{.Names}}' | grep -qx qwen-vllm; then
   docker rm -f qwen-vllm >/dev/null 2>&1 || true
   # Same serving flags as the earlier staged Modal provider (git history), without --enforce-eager.
   docker run -d --name qwen-vllm --gpus all --network host --ipc host \
     -v "$HF_CACHE:/root/.cache/huggingface" -e HF_HUB_OFFLINE=1 \
-    "$VLLM_IMAGE" "$MODEL" --revision "$MODEL_REVISION" \
+    "$VLLM_IMAGE" "${model_args[@]}" \
     --host 127.0.0.1 --port "$VLLM_PORT" --dtype bfloat16 \
     --max-model-len "$MAX_MODEL_LEN" --max-num-seqs "$MAX_SEQS" --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
     --language-model-only --enable-auto-tool-choice --tool-call-parser qwen3_coder \

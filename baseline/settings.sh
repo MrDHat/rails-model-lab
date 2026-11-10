@@ -9,7 +9,11 @@ seqs="${MAX_SEQS:-}" util="${GPU_MEMORY_UTILIZATION:-}"
 set -a; source "baseline/models/$QWEN.env"; set +a
 MAX_SEQS="${seqs:-$MAX_SEQS}" GPU_MEMORY_UTILIZATION="${util:-$GPU_MEMORY_UTILIZATION}"
 export QWEN
-HF_CACHE="$HOME/hf-cache"
+# A GCP local NVMe SSD (wiped on every stop) reads weights far faster than a
+# standard persistent disk: about 20 MB/s there made each vLLM start take 40
+# minutes. provision.sh mounts it at /mnt/localssd and downloads the weights.
+LOCAL_SSD=/dev/disk/by-id/google-local-nvme-ssd-0
+if [ -e "$LOCAL_SSD" ]; then HF_CACHE=/mnt/localssd/hf-cache; else HF_CACHE="$HOME/hf-cache"; fi
 VLLM_PORT=8000
 # A smaller GPU may not fit a full 256K context in its KV cache.
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-262144}"

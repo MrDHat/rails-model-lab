@@ -138,3 +138,75 @@ apps share one `Gemfile.lock`, so one image runs them all.
 
 `bin/build-bench` adds them to the agentic bench, where the agent gets the
 whole app in `/app`, and `run-bench.sh apps` runs them.
+
+## SFT: train on the model's own successes
+
+The first training stage is rejection sampling: the model attempts the train
+tasks, the tests and the API check pick out its full-credit attempts, and a
+LoRA learns from those transcripts. No other model writes the data, and no
+benchmark prompt, grader, reference answer or run log goes near it.
+
+1. **Collect.** `run-bench.sh train` runs every train task (one-file and app)
+   6 times with sampling unseeded (`SAMPLING_SEED=none`), so the attempts differ.
+2. **Build.** [`sft/build_dataset.py`](sft/build_dataset.py) keeps attempts
+   with reward 1.0, at most 4 per task (the fewest steps), as chat transcripts.
+   It refuses held-out tasks.
+3. **Train.** [`sft/train.py`](sft/train.py) trains a rank-32 LoRA on every
+   linear layer of the language model, loss on the assistant turns only
+   (reasoning, text and bash calls). It fits a 32K-token transcript on one
+   A100 80GB beside the bf16 weights by checkpointing layers, MLP chunks and
+   loss chunks, and moving saved activations to CPU. It checkpoints every 2
+   steps and resumes, for spot VMs.
+4. **Merge.** [`sft/merge.py`](sft/merge.py) folds the adapter into full
+   weights that vLLM serves like the base model.
+
+On the GPU VM, [`sft/run.sh`](sft/run.sh) does steps 2 to 4 and is safe to
+rerun after a preemption. Then serve and evaluate:
+
+```sh
+bash training/run-bench.sh train                        # step 1, with SAMPLING_SEED=none when serving
+bash training/sft/run.sh                                # build, train, merge
+QWEN=qwen3.5-27b-sft bash baseline/serve-qwen.sh
+QWEN=qwen3.5-27b-sft bash training/run-bench.sh validation
+```
+
+First run (Qwen3.5-27B, 123 transcripts from 36 of 61 train tasks, 2 epochs,
+30 steps on one spot A100): training loss fell from 0.13 to 0.09, but the
+validation stage didn't move. Both models fully solved 23 of 51 attempts
+(mean credit 0.494 each), on the same serving setup and seed. The model
+already writes these transcripts, so there is little left to learn from
+them. Most held-out misses score 0.1: the tests pass but the answer skips the
+intended Rails API, and training only on successes never shows that contrast.
+
+## DPO: prefer the full-credit attempt over the near miss
+
+The second stage shows the model that contrast. For each train task where the
+collected attempts include both a full-credit one and a miss, a pair puts
+them side by side, and DPO raises the probability of the full-credit
+transcript relative to the miss, measured against the untrained model so
+nothing else drifts.
+
+1. **Pairs.** [`dpo/build_pairs.py`](dpo/build_pairs.py) uses the same train
+   collection as SFT: at most 6 pairs per task, misses at 0.1 first (the
+   commonest held-out mistake), spread so one transcript doesn't fill every
+   pair. Held-out tasks and unscored attempts are refused.
+2. **Train.** [`dpo/train.py`](dpo/train.py) reuses the SFT LoRA and memory
+   tricks. The reference model is the base with the LoRA off, scored once.
+   Each pair's two transcripts are backpropagated one at a time, so a 30K-token
+   pair fits on one A100.
+3. **Merge** as for SFT.
+
+```sh
+bash training/dpo/run.sh                                # pairs, train, merge
+QWEN=qwen3.5-27b-dpo bash baseline/serve-qwen.sh
+QWEN=qwen3.5-27b-dpo bash training/run-bench.sh validation
+```
+
+First run (Qwen3.5-27B, 125 pairs from 24 train tasks, beta 0.1, 1 epoch, 32
+steps of 4 pairs, about 2.3 hours on one spot A100): by the end the model
+ranked the full-credit attempt above the miss in most pairs. On validation it
+fully solved 27 of 51 attempts against 23 for the base model (mean credit
+0.569 against 0.494, zero-credit attempts 4 against 6, pass@3 unchanged at
+10/17), on the same serving setup and seed. The gain is concentrated in three
+tasks that went from one full-credit attempt or none to two or three; one task
+lost one. With 51 attempts that is a promising but not yet conclusive margin.
