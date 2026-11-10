@@ -28,6 +28,9 @@ from transformers import AutoModelForImageTextToText, AutoTokenizer
 
 MODEL = os.environ.get("MODEL", "Qwen/Qwen3.5-27B")
 REVISION = os.environ.get("MODEL_REVISION", "fc05daec18b0a78c049392ed2e771dde82bdf654")
+# MODEL may be a local directory, e.g. an earlier round's merged weights; it has no revisions.
+if os.path.isdir(MODEL):
+    REVISION = None
 EPOCHS = int(os.environ.get("EPOCHS", "2"))
 LR = float(os.environ.get("LR", "1e-4"))
 ACCUMULATE = int(os.environ.get("ACCUMULATE", "8"))

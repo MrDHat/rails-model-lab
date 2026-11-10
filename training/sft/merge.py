@@ -1,4 +1,5 @@
-"""Merges a LoRA adapter from train.py into Qwen3.5-27B and saves full bf16
+"""Merges a LoRA adapter from train.py into the model it was trained on
+(Qwen3.5-27B, or MODEL if set, e.g. an earlier round's merged weights) and saves full bf16
 weights that vLLM serves like the base model (baseline/models/*-sft.env).
 
     python3 training/sft/merge.py ADAPTER_DIR OUT_DIR
@@ -20,7 +21,7 @@ from train import MODEL, REVISION
 
 def main(adapter, out):
     out = Path(out)
-    base = Path(snapshot_download(MODEL, revision=REVISION))
+    base = Path(MODEL) if Path(MODEL).is_dir() else Path(snapshot_download(MODEL, revision=REVISION))
     model = AutoModelForImageTextToText.from_pretrained(base, dtype=torch.bfloat16, device_map={"": 0})
     model = PeftModel.from_pretrained(model, adapter).merge_and_unload()
     model.save_pretrained(out, max_shard_size="5GB")
