@@ -210,3 +210,39 @@ fully solved 27 of 51 attempts against 23 for the base model (mean credit
 10/17), on the same serving setup and seed. The gain is concentrated in three
 tasks that went from one full-credit attempt or none to two or three; one task
 lost one. With 51 attempts that is a promising but not yet conclusive margin.
+
+### Rounds: learn from the model's own current mistakes
+
+Round 1 learned from the base model's attempts. Once trained, the model makes
+different mistakes, so each later round collects fresh attempts from the
+previous round's model on the train tasks (sampling unseeded, so the six
+attempts differ), builds pairs from those, and trains starting from that model,
+which is also the reference.
+
+```sh
+QWEN=qwen3.5-27b-dpo SAMPLING_SEED=none bash baseline/serve-qwen.sh
+QWEN=qwen3.5-27b-dpo bash training/run-bench.sh train   # round 1 model's attempts
+ROUND=2 bash training/dpo/run.sh                        # -> qwen3.5-27b-dpo2
+```
+
+On a spot VM, [`drive-spot.sh`](drive-spot.sh) runs each step from the laptop
+and restarts it after preemptions: `MODE=collect V=dpo`, then
+`MODE=train V=dpo2`, then `MODE=eval V=dpo2`.
+
+Round 2 (139 pairs from 24 train tasks; the round-1 model fully solved 163 of
+366 train attempts, 37 of 61 tasks at least once):
+
+| Validation, 51 attempts | Base  | SFT   | DPO 1 | DPO 2 |
+|-------------------------|-------|-------|-------|-------|
+| Fully solved            | 23    | 23    | 27    | 29    |
+| Mean credit             | 0.494 | 0.494 | 0.569 | 0.602 |
+| Zero-credit attempts    | 6     | 6     | 4     | 5     |
+| Tasks solved at least once (pass@3) | 10/17 | 9/17 | 10/17 | 13/17 |
+
+The new part is breadth: three tasks no earlier model ever solved
+(`borrow-rate-limit`, `category-delete-guard`, `order-status-enum`) now get
+full credit at least once. Against that, `archivable-concern` fell from 3/3
+under round 1 to 0/3, and `billing-next-month` from 2/3 to 1/3, so part of
+round 1's gain did not carry over. Four tasks are still never solved. With 17
+tasks and 3 attempts each, the trend is encouraging but the margin over round
+1 is small.

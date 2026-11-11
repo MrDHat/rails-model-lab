@@ -65,6 +65,8 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
       # SSH answered and the job is gone. If the VM stayed up since the job
       # started, that is a real failure, not a preemption: stop rather than loop.
       if [ "$started" = 1 ] && [ "$booted" = 0 ]; then
+        # The job may have finished between the done check above and this one.
+        remote "cd ~/rails-model-lab && $DONE" >/dev/null 2>&1 && continue
         log "job failed"; remote "cd ~/rails-model-lab && tail -25 $LOGS/run.log $LOGS/serve.log ${RUNS:-}.log 2>/dev/null"
         stop_vm; exit 1
       fi
