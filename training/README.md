@@ -246,3 +246,25 @@ under round 1 to 0/3, and `billing-next-month` from 2/3 to 1/3, so part of
 round 1's gain did not carry over. Four tasks are still never solved. With 17
 tasks and 3 attempts each, the trend is encouraging but the margin over round
 1 is small.
+
+Round 3 (115 pairs from 21 train tasks; the round-2 model fully solved 184 of
+366 train attempts, 41 of 61 tasks at least once, against 163 and 37 for round
+1):
+
+| Validation, 51 attempts | Base  | DPO 1 | DPO 2 | DPO 3 |
+|-------------------------|-------|-------|-------|-------|
+| Fully solved            | 23    | 27    | 29    | 30    |
+| Mean credit             | 0.494 | 0.569 | 0.602 | 0.624 |
+| Zero-credit attempts    | 6     | 4     | 5     | 3     |
+| Tasks solved at least once (pass@3) | 10/17 | 10/17 | 13/17 | 13/17 |
+
+Each round still adds a little, but less each time: +4, +2, then +1 fully
+solved. Which tasks get solved keeps shifting. Round 3 newly solves
+`pickup-sms-retry` and `tool-search-like` once each and `order-status-enum`
+every time, but loses the single wins round 2 had on `borrow-rate-limit` and
+`category-delete-guard`. `terms-acceptance` has never been solved. By the end of
+round 3's training the chosen-over-rejected margin was far larger than in
+earlier rounds (+5 to +9 against about +2), a sign it is fitting its own
+pairs closely rather than learning something broader. Another round of the
+same recipe is unlikely to move the score much; the next gain probably needs
+more or different train tasks rather than more rounds on the same 61.
