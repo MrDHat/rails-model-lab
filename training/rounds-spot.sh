@@ -1,33 +1,43 @@
 #!/usr/bin/env bash
-# Run on your laptop. Runs DPO rounds back to back on the spot VM (collect the
-# previous round's attempts, train, evaluate on validation) until a round no
-# longer fully solves more validation attempts than the best round so far.
+# Run on your laptop. Runs training rounds back to back on the spot VM (collect
+# the previous model's attempts, train, evaluate on validation) until a round no
+# longer fully solves more validation attempts than the best model so far.
 #
-#   START=4 BEST=30 bash training/rounds-spot.sh
+#   START=4 BEST=30 bash training/rounds-spot.sh                          # DPO rounds 4, 5, ...
+#   STAGE=rl FROM=dpo4 START=1 BEST=34 SKIP_COLLECT=1 bash training/rounds-spot.sh
 #
-# START is the first round to run; BEST is the best validation score so far
-# (fully solved attempts out of 51).
+# STAGE is dpo (default) or rl. START is the first round to run; BEST is the
+# best validation score so far (fully solved attempts out of 51). FROM is the
+# model round 1 starts from (rl only). SKIP_COLLECT=1 reuses the attempts the
+# first round's starting model already made on the train tasks.
 set -uo pipefail
 cd "$(dirname "$0")/.."
+stage="${STAGE:-dpo}" from="${FROM:-}"
 n="${START:?START=first round to run}" best="${BEST:?BEST=best validation score so far}"
+model() { [ "$1" = 1 ] && echo "$stage" || echo "$stage$1"; }  # round 1 is "dpo"/"rl", then dpo2, rl2, ...
 while :; do
-  prev=dpo$((n - 1)); [ "$n" = 2 ] && prev=dpo
-  env=baseline/models/qwen3.5-27b-dpo$n.env
+  cur=$(model "$n") prev=$(model $((n - 1)))
+  [ "$n" = 1 ] && prev="${from:?FROM=model round 1 starts from}"
+  env=baseline/models/qwen3.5-27b-$cur.env
   [ -f "$env" ] || cat > "$env" <<EOF
-# Qwen3.5-27B after DPO round $n (training/dpo/run.sh, ROUND=$n), served from
+# Qwen3.5-27B after $stage round $n (training/$stage/run.sh, ROUND=$n), served from
 # local weights under the same settings as the base 27B.
-MODEL=rails-qwen3.5-27b-dpo$n
-WEIGHTS=/root/.cache/huggingface/merged/qwen3.5-27b-dpo$n
+MODEL=rails-qwen3.5-27b-$cur
+WEIGHTS=/root/.cache/huggingface/merged/qwen3.5-27b-$cur
 MODEL_REVISION=local
 MAX_SEQS=6
 GPU_MEMORY_UTILIZATION=0.90
 EOF
-  echo "=== round $n: collect $prev"
-  MODE=collect V=$prev HOURS=30 bash training/drive-spot.sh || exit 1
-  echo "=== round $n: train dpo$n"
-  MODE=train V=dpo$n HOURS=20 bash training/drive-spot.sh || exit 1
-  echo "=== round $n: evaluate dpo$n"
-  out=$(MODE=eval V=dpo$n HOURS=20 bash training/drive-spot.sh | tee /dev/stderr) || exit 1
+  if [ -n "${SKIP_COLLECT:-}" ] && [ "$n" = "$START" ]; then
+    echo "=== round $n: reusing $prev's train attempts"
+  else
+    echo "=== round $n: collect $prev"
+    MODE=collect V=$prev HOURS=30 bash training/drive-spot.sh || exit 1
+  fi
+  echo "=== round $n: train $cur"
+  MODE=train V=$cur HOURS=20 bash training/drive-spot.sh || exit 1
+  echo "=== round $n: evaluate $cur"
+  out=$(MODE=eval V=$cur HOURS=20 bash training/drive-spot.sh | tee /dev/stderr) || exit 1
   solved=$(echo "$out" | sed -n 's/.* \([0-9][0-9]*\) solved.*/\1/p' | tail -1)
   echo "=== round $n: $solved/51 fully solved (best before: $best)"
   [ -n "$solved" ] && [ "$solved" -gt "$best" ] || { echo "=== flat after round $n"; exit 0; }
