@@ -268,3 +268,32 @@ earlier rounds (+5 to +9 against about +2), a sign it is fitting its own
 pairs closely rather than learning something broader. Another round of the
 same recipe is unlikely to move the score much; the next gain probably needs
 more or different train tasks rather than more rounds on the same 61.
+
+Rounds 4 and 5 ran back to back with
+[`rounds-spot.sh`](rounds-spot.sh) (`START=4 BEST=30`), which collects, trains
+and evaluates each round on the spot VM and stops at the first round that does
+not fully solve more validation attempts than the best before it. Round 4
+learned from 144 pairs across 26 train tasks (the round-3 model fully solved
+191 of 366 train attempts, 43 of 61 tasks at least once). Round 5 learned from
+122 pairs across 22 tasks (the round-4 model: 207 of 366, still 43 of 61).
+
+| Validation, 51 attempts | Base  | DPO 1 | DPO 2 | DPO 3 | DPO 4 | DPO 5 |
+|-------------------------|-------|-------|-------|-------|-------|-------|
+| Fully solved            | 23    | 27    | 29    | 30    | 34    | 33    |
+| Mean credit             | 0.494 | 0.569 | 0.602 | 0.624 | 0.690 | 0.675 |
+| Zero-credit attempts    | 6     | 4     | 5     | 3     | 5     | 4     |
+| Tasks solved at least once (pass@3) | 10/17 | 10/17 | 13/17 | 13/17 | 14/17 | 14/17 |
+
+Round 4 broke the shrinking-gains pattern above with +4, so the prediction
+after round 3 was too early. Round 5 then dipped by one attempt, which stopped
+the loop. Round 4 (`qwen3.5-27b-dpo4`) is the best model so far. The round-4
+gain comes from tasks that were already partly solved now passing more often:
+`archivable-concern` is back to 3/3, `stock-feed-upsert` reaches 3/3 for the
+first time, and `borrow-rate-limit` goes to 2/3. One point is within the noise
+of 17 tasks × 3 attempts, so round 5 is a plateau rather than a real decline.
+On the train tasks the number of tasks solved at least once stayed at 43 of 61
+from round 3 to round 5, while the number of attempts fully solved kept rising
+(191, then 207). The model is getting more reliable on tasks it can already do,
+not learning to do new ones. `terms-acceptance` is still never solved.
+Further gains likely need more or harder train tasks, or a different training
+signal, rather than more rounds of the same recipe.

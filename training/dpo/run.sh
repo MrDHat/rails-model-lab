@@ -43,4 +43,10 @@ in_image() {
 test -d "$out/adapter"
 [ -f "$HF_CACHE/merged/$name/config.json" ] \
   || in_image "cd sft && python3 merge.py /work/$out/adapter /root/.cache/huggingface/merged/$name" 2>&1 | tee -a "$out/merge.log"
+# Each merged model is about 54 GB; keep only this round and the one before it.
+# Docker wrote them as root, hence sudo; a failed cleanup must not fail the round.
+for ((k = 1; k < ROUND - 1; k++)); do
+  old=qwen3.5-27b-dpo; [ "$k" -gt 1 ] && old=qwen3.5-27b-dpo$k
+  sudo rm -rf "${HF_CACHE:?}/merged/$old" || echo "could not remove merged/$old"
+done
 echo "DPO round $ROUND done: serve with QWEN=$name bash baseline/serve-qwen.sh"
