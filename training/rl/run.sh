@@ -5,28 +5,37 @@
 # checkpoint), and merges it into full weights that baseline/models/<name>.env
 # serves. Stops vLLM first, since training needs the whole GPU.
 #
-#   bash training/rl/run.sh            # round 1: FROM's attempts -> qwen3.5-27b-rl
-#   ROUND=2 bash training/rl/run.sh    # round 2: qwen3.5-27b-rl's attempts -> qwen3.5-27b-rl2
+#   bash training/rl/run.sh                    # round 1: dpo4's attempts -> qwen3.5-27b-rl
+#   ROUND=2 bash training/rl/run.sh            # round 2: qwen3.5-27b-rl's attempts -> qwen3.5-27b-rl2
+#   ROUND=3 FROM=rl bash training/rl/run.sh    # round 3, starting from round 1 instead of 2
 #
-# Round 1 starts from FROM (default dpo4, the best DPO round), round N from
-# round N-1. Each learns from that model's own attempts
+# Each round learns from its starting model's own attempts
 # (runs/bench-<model>-train, collected unseeded).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 QWEN=qwen3.5-27b source baseline/settings.sh
-ROUND="${ROUND:-1}" FROM="${FROM:-dpo4}"
-if [ "$ROUND" = 1 ]; then
-  name=qwen3.5-27b-rl prev=qwen3.5-27b-$FROM
-  rebuild="ROUND=${FROM#dpo} bash training/dpo/run.sh"
-else
-  name=qwen3.5-27b-rl$ROUND prev=qwen3.5-27b-rl; [ "$ROUND" -gt 2 ] && prev=qwen3.5-27b-rl$((ROUND - 1))
-  rebuild="ROUND=$((ROUND - 1)) bash training/rl/run.sh"
+ROUND="${ROUND:-1}"
+name=qwen3.5-27b-rl; [ "$ROUND" -gt 1 ] && name=qwen3.5-27b-rl$ROUND
+out=runs/rl/$name
+mkdir -p "$out"
+# FROM is the model this round starts from: dpoN, rl or rlN. Round 1 defaults to
+# dpo4 (the best DPO round), round N to round N-1. The first run records it, so
+# a rebuild after a preemption starts from the same model.
+if [ -f "$out/from" ]; then FROM=$(cat "$out/from")
+elif [ -z "${FROM:-}" ]; then FROM=dpo4; [ "$ROUND" = 2 ] && FROM=rl; [ "$ROUND" -gt 2 ] && FROM=rl$((ROUND - 1))
 fi
+echo "$FROM" > "$out/from"
+prev=qwen3.5-27b-$FROM
+case "$FROM" in
+  dpo) rebuild="ROUND=1 bash training/dpo/run.sh" ;;
+  dpo*) rebuild="ROUND=${FROM#dpo} bash training/dpo/run.sh" ;;
+  rl) rebuild="FROM= ROUND=1 bash training/rl/run.sh" ;;
+  rl*) rebuild="FROM= ROUND=${FROM#rl} bash training/rl/run.sh" ;;
+  *) echo "unknown FROM=$FROM" >&2; exit 2 ;;
+esac
 start=/root/.cache/huggingface/merged/$prev
 # The local SSD loses merged weights on preemption; rebuild the previous model's.
 [ -f "$HF_CACHE/merged/$prev/config.json" ] || bash -c "$rebuild"
-out=runs/rl/$name
-mkdir -p "$out"
 
 python3 training/rl/build_groups.py "$out/groups.jsonl" "runs/bench-$prev-train" | tee "$out/groups.txt"
 docker rm -f qwen-vllm >/dev/null 2>&1 || true

@@ -8,7 +8,8 @@
 #   MODE=collect V=dpo  bash training/drive-spot.sh   # model V attempts the train tasks (runs/bench-qwen3.5-27b-V-train)
 #   MODE=eval    V=dpo2 bash training/drive-spot.sh   # model V on the validation tasks (runs/bench-qwen3.5-27b-V-validation)
 #
-# V is sft, dpo (DPO round 1), dpoN (round N), rl (RL round 1) or rlN. collect and eval first
+# V is sft, dpo (DPO round 1), dpoN (round N), rl (RL round 1) or rlN; FROM (rl only) is
+# the model the RL round starts from. collect and eval first
 # rebuild V's merged weights if the local SSD lost them.
 set -uo pipefail
 VM="${VM_NAME:-rails-qwen-a100}" Z="${GCP_ZONE:-us-central1-a}"
@@ -25,8 +26,8 @@ case "$V" in
   sft) BUILD="bash training/sft/run.sh" LOGS=runs/sft ;;
   dpo) BUILD="ROUND=1 bash training/dpo/run.sh" LOGS=runs/dpo ;;
   dpo*) BUILD="ROUND=${V#dpo} bash training/dpo/run.sh" LOGS=runs/dpo ;;
-  rl) BUILD="ROUND=1 bash training/rl/run.sh" LOGS=runs/rl ;;
-  rl*) BUILD="ROUND=${V#rl} bash training/rl/run.sh" LOGS=runs/rl ;;
+  rl) BUILD="FROM=${FROM:-} ROUND=1 bash training/rl/run.sh" LOGS=runs/rl ;;
+  rl*) BUILD="FROM=${FROM:-} ROUND=${V#rl} bash training/rl/run.sh" LOGS=runs/rl ;;
   *) echo "unknown V=$V" >&2; exit 2 ;;
 esac
 OUT=$LOGS/$NAME
@@ -38,7 +39,8 @@ case "$MODE" in
   collect|eval)
     # Collecting needs varied attempts, so sampling is unseeded; eval keeps the frozen seed.
     stage=validation seed=""
-    [ "$MODE" = collect ] && stage=train seed="SAMPLING_SEED=none"
+    # ATTEMPTS (default 6) is attempts per train task; a rerun with more tops each task up.
+    [ "$MODE" = collect ] && stage=train seed="SAMPLING_SEED=none" SERVE="ATTEMPTS=${ATTEMPTS:-6} $SERVE"
     RUNS=runs/bench-$NAME-$stage
     DONE="test -f $RUNS/report.txt"
     JOB="rm -f $RUNS/report.txt && tmux new-session -d -s job \"$BUILD >> $LOGS/run.log 2>&1 && sg docker -c '$seed $SERVE bash baseline/serve-qwen.sh' >> $LOGS/serve.log 2>&1 && $SERVE bash training/run-bench.sh $stage --inside 2>&1 | tee -a $RUNS.log\"" ;;
