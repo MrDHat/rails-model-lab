@@ -58,6 +58,8 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
   if [ "$started" = 1 ] && remote "cd ~/rails-model-lab && $DONE && ! tmux has-session -t job 2>/dev/null" >/dev/null 2>&1; then
     log "done"
     [ "$MODE" = train ] && remote "tail -3 ~/rails-model-lab/$OUT/train.log"
+    # Back the new adapter up off the VM; a failed upload must not fail the round.
+    [ "$MODE" = train ] && { bash "$REPO/training/push-adapter.sh" "$OUT" || log "adapter upload failed"; }
     [ "$MODE" != train ] && remote "cat ~/rails-model-lab/$RUNS/report.txt"
     stop_vm; exit 0
   fi
@@ -76,7 +78,11 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
       fi
       (cd "$REPO" && VM_NAME="$VM" bash baseline/push.sh >/dev/null 2>&1) || { log "push failed"; continue; }
       remote "cd ~/rails-model-lab && mkdir -p $LOGS && QWEN=qwen3.5-27b bash baseline/provision.sh > $LOGS/provision.log 2>&1" \
-        || { log "provision failed"; continue; }
+        || { log "provision failed"; fails=$((${fails:-0} + 1))
+             # A restarted spot VM sometimes comes back without a working GPU;
+             # retrying on the same host never fixes it, so stop and start fresh.
+             [ "$fails" -ge 3 ] && { fails=0; stop_vm; }; continue; }
+      fails=0
       remote "cd ~/rails-model-lab && $JOB" && { started=1 booted=0; log "job started"; } ;;
     *) log "ssh lost, rechecking" ;;  # neither marker: SSH itself failed, e.g. a preemption
   esac
