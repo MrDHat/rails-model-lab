@@ -297,3 +297,45 @@ from round 3 to round 5, while the number of attempts fully solved kept rising
 not learning to do new ones. `terms-acceptance` is still never solved.
 Further gains likely need more or harder train tasks, or a different training
 signal, rather than more rounds of the same recipe.
+
+## RL: push towards attempts that scored above their task's average
+
+DPO only ever compares two attempts. The RL stage
+([`rl/build_groups.py`](rl/build_groups.py), [`rl/train.py`](rl/train.py),
+[`rl/run.sh`](rl/run.sh)) uses all six attempts the model made at each train
+task. Each attempt gets a score for how much better it did than the
+other attempts at the same task: its reward (1, 0.1 or 0) minus the task's
+average reward. Training makes the attempts above the average more likely and
+the ones below it less likely, in proportion to that score. This is the group
+baseline from GRPO, without dividing by the spread. Dividing by the spread
+would push as hard on a 0.1-versus-0 gap as on full credit versus a miss.
+Each attempt's ratio is measured per token over the whole attempt, as in GSPO,
+and an attempt stops pushing once the model has moved it 10% away from where
+it started. Training takes one step per task, LR 1e-4 and one pass. Tasks
+where every attempt got the same reward teach nothing and are skipped.
+
+Round 1 started from DPO round 4 and reused its train attempts: 150 attempts
+across 25 tasks, 134 after dropping those over 32,768 tokens. Round 2 learned
+from round 1's own attempts: 126 attempts across 21 tasks, 118 kept. Both rounds ran
+with `STAGE=rl FROM=dpo4 START=1 BEST=34 SKIP_COLLECT=1 bash
+training/rounds-spot.sh`. Training took about 80 minutes for round 1 and 60
+for round 2.
+
+| Validation, 51 attempts | Base  | DPO 4 | DPO 5 | RL 1  | RL 2  |
+|-------------------------|-------|-------|-------|-------|-------|
+| Fully solved            | 23    | 34    | 33    | 37    | 36    |
+| Mean credit             | 0.494 | 0.690 | 0.675 | 0.743 | 0.722 |
+| Zero-credit attempts    | 6     | 5     | 4     | 5     | 7     |
+| Tasks solved at least once (pass@3) | 10/17 | 14/17 | 14/17 | 15/17 | 15/17 |
+
+RL round 1 (`qwen3.5-27b-rl`) is the best model so far. Compared with DPO 4 it
+gains on `order-status-enum` (3/3), `product-sku-readonly` (2/3) and
+`tool-search-like` (2/3), and loses one on `stock-feed-upsert`. On the train
+tasks it fully solved 232 of 366 attempts, up from DPO 4's 207. It also solved
+46 of 61 tasks at least once, up from 43, the first rise in that number since
+DPO round 3. Round 2 scored one attempt lower, which stopped the loop. As with
+DPO round 5, one attempt is within the noise of 17 tasks × 3 attempts. Which
+tasks it solves still shifts from round to round: round 2 reaches 3/3 on
+`category-delete-guard` and `product-sku-readonly` but drops to 1/3 on
+`archivable-concern`. `terms-acceptance` and `pickup-sms-retry` are not solved
+by either RL round.
