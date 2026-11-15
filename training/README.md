@@ -321,12 +321,12 @@ with `STAGE=rl FROM=dpo4 START=1 BEST=34 SKIP_COLLECT=1 bash
 training/rounds-spot.sh`. Training took about 80 minutes for round 1 and 60
 for round 2.
 
-| Validation, 51 attempts | Base  | DPO 4 | DPO 5 | RL 1  | RL 2  |
-|-------------------------|-------|-------|-------|-------|-------|
-| Fully solved            | 23    | 34    | 33    | 37    | 36    |
-| Mean credit             | 0.494 | 0.690 | 0.675 | 0.743 | 0.722 |
-| Zero-credit attempts    | 6     | 5     | 4     | 5     | 7     |
-| Tasks solved at least once (pass@3) | 10/17 | 14/17 | 14/17 | 15/17 | 15/17 |
+| Validation, 51 attempts | Base  | DPO 4 | DPO 5 | RL 1  | RL 2  | RL 3  |
+|-------------------------|-------|-------|-------|-------|-------|-------|
+| Fully solved            | 23    | 34    | 33    | 37    | 36    | 40    |
+| Mean credit             | 0.494 | 0.690 | 0.675 | 0.743 | 0.722 | 0.790 |
+| Zero-credit attempts    | 6     | 5     | 4     | 5     | 7     | 8     |
+| Tasks solved at least once (pass@3) | 10/17 | 14/17 | 14/17 | 15/17 | 15/17 | 16/17 |
 
 RL round 1 (`qwen3.5-27b-rl`) is the best model so far. Compared with DPO 4 it
 gains on `order-status-enum` (3/3), `product-sku-readonly` (2/3) and
@@ -339,3 +339,32 @@ tasks it solves still shifts from round to round: round 2 reaches 3/3 on
 `category-delete-guard` and `product-sku-readonly` but drops to 1/3 on
 `archivable-concern`. `terms-acceptance` and `pickup-sms-retry` are not solved
 by either RL round.
+
+### Round 3: more attempts per task
+
+Six attempts per task left most train tasks with nothing to learn from: when
+all six score the same, the task is skipped. Round 3 went back to RL round 1
+and had it make 16 attempts at every train task instead
+(`STAGE=rl FROM=rl START=3 BEST=37 ATTEMPTS=16 bash training/rounds-spot.sh`;
+the extra ten per task topped up round 1's existing six). With 16 attempts, 31
+tasks had attempts that scored differently, up from 25, giving 496 attempts,
+473 after dropping those over 32,768 tokens. That is four times round 2's data.
+Training took about three and a half hours. The budget ran out at step 18 of 31;
+the run stopped, and later resumed from the step-18 checkpoint with
+`MODE=train V=rl3 bash training/drive-spot.sh`.
+
+RL round 3 (`qwen3.5-27b-rl3`) is the new best model: 40 of 51 validation
+attempts fully solved and 16 of 17 tasks solved at least once. Compared with RL
+round 1 it reaches 3/3 on `borrow-rate-limit`, `category-delete-guard` and
+`stock-feed-upsert`, and solves `terms-acceptance` (2/3) for the first time in
+any round. It drops to 1/3 on `order-status-enum` and 2/3 on `post-tags-json`.
+It also has more zero-credit attempts (8, up from 5), so its misses are more
+often total misses. Some of its attempts run much longer: `pickup-sms-retry`,
+still unsolved, and `product-sku-readonly` average over 130 steps and 5 million
+tokens per attempt, against under 50 steps for round 1. Three train tasks
+(`checkout-form-object`, `order-optimistic-lock`, `payment-job-give-up`) were
+not solved in any of the 16 attempts, so RL cannot learn them; that needs new
+tasks or hints.
+
+Each training round's adapter is uploaded from the VM to a private Hugging
+Face repo by [`push-adapter.sh`](push-adapter.sh), so the models survive the VM.
