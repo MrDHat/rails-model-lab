@@ -7,8 +7,9 @@
 #   MODE=train   V=dpo2 bash training/drive-spot.sh   # train and merge model V
 #   MODE=collect V=dpo  bash training/drive-spot.sh   # model V attempts the train tasks (runs/bench-qwen3.5-27b-V-train)
 #   MODE=eval    V=dpo2 bash training/drive-spot.sh   # model V on the validation tasks (runs/bench-qwen3.5-27b-V-validation)
+#   MODE=benchmark V=rl3 bash training/drive-spot.sh  # model V on the official atomic tasks, 3 attempts each (runs/benchmark/qwen3.5-27b-V-atomic)
 #
-# V is sft, dpo (DPO round 1), dpoN (round N), rl (RL round 1) or rlN; FROM (rl only) is
+# V is base (the untrained model), sft, dpo (DPO round 1), dpoN (round N), rl (RL round 1) or rlN; FROM (rl only) is
 # the model the RL round starts from. collect and eval first
 # rebuild V's merged weights if the local SSD lost them.
 set -uo pipefail
@@ -23,6 +24,7 @@ stop_vm() { gcloud compute instances stop "$VM" --zone "$Z" --discard-local-ssd=
 
 NAME=qwen3.5-27b-$V
 case "$V" in
+  base) BUILD="true" LOGS=runs/benchmark NAME=qwen3.5-27b ;;
   sft) BUILD="bash training/sft/run.sh" LOGS=runs/sft ;;
   dpo) BUILD="ROUND=1 bash training/dpo/run.sh" LOGS=runs/dpo ;;
   dpo*) BUILD="ROUND=${V#dpo} bash training/dpo/run.sh" LOGS=runs/dpo ;;
@@ -44,6 +46,13 @@ case "$MODE" in
     RUNS=runs/bench-$NAME-$stage
     DONE="test -f $RUNS/report.txt"
     JOB="rm -f $RUNS/report.txt && tmux new-session -d -s job \"$BUILD >> $LOGS/run.log 2>&1 && sg docker -c '$seed $SERVE bash baseline/serve-qwen.sh' >> $LOGS/serve.log 2>&1 && $SERVE bash training/run-bench.sh $stage --inside 2>&1 | tee -a $RUNS.log\"" ;;
+  benchmark)
+    # The official protocol: full 262,144-token context and the frozen seed,
+    # with the same settings for every model compared.
+    SERVE="${SERVE/MAX_MODEL_LEN=131072/MAX_MODEL_LEN=262144}"
+    RUNS=runs/benchmark/$NAME-atomic
+    DONE="test -f $RUNS/report.txt"
+    JOB="mkdir -p runs/benchmark && tmux new-session -d -s job \"$BUILD >> $LOGS/run.log 2>&1 && sg docker -c '$SERVE bash baseline/serve-qwen.sh' >> $LOGS/serve.log 2>&1 && $SERVE ATTEMPTS=3 RUNS_DIR=$RUNS bash baseline/run-baseline.sh atomic --inside 2>&1 | tee -a $RUNS.log\"" ;;
   *) echo "unknown MODE=$MODE" >&2; exit 2 ;;
 esac
 

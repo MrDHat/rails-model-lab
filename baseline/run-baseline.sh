@@ -17,7 +17,7 @@ if [ -z "${TMUX:-}" ] && [ "${2:-}" != --inside ]; then
   # A running tmux server keeps its own environment, so pass the knobs explicitly.
   session="baseline-${QWEN//./_}-$stage"  # tmux would turn dots into underscores anyway
   tmux new-session -d -s "$session" \
-    "QWEN=$QWEN CONCURRENCY=$CONCURRENCY ATTEMPTS=${ATTEMPTS:-1} bash baseline/run-baseline.sh $stage --inside 2>&1 | tee -a runs/baseline-$QWEN-$stage.log"
+    "QWEN=$QWEN CONCURRENCY=$CONCURRENCY ATTEMPTS=${ATTEMPTS:-1} RUNS_DIR=${RUNS_DIR:-} bash baseline/run-baseline.sh $stage --inside 2>&1 | tee -a runs/baseline-$QWEN-$stage.log"
   echo "Started in tmux session $session. Watch: tmux attach -t $session"
   exit 0
 fi
@@ -27,7 +27,7 @@ test "$(cat runs/inference/proxy.model 2>/dev/null)" = "$MODEL" && curl -sf "htt
   || { echo "Run QWEN=$QWEN baseline/serve-qwen.sh first" >&2; exit 1; }
 test "$(git -C vendor/ai-evals rev-parse HEAD)" = "$(cat benchmark-revision.txt)"
 
-runs="runs/$QWEN-$stage"
+runs="${RUNS_DIR:-runs/$QWEN-$stage}"
 mkdir -p "$runs"
 export GPUSTACK_API_BASE="http://127.0.0.1:$PROXY_PORT/v1"
 # The relay sends this as a bearer token; vLLM is loopback-only and ignores it.
