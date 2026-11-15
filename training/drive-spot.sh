@@ -8,12 +8,13 @@
 #   MODE=collect V=dpo  bash training/drive-spot.sh   # model V attempts the train tasks (runs/bench-qwen3.5-27b-V-train)
 #   MODE=eval    V=dpo2 bash training/drive-spot.sh   # model V on the validation tasks (runs/bench-qwen3.5-27b-V-validation)
 #
-# V is sft, dpo (DPO round 1) or dpoN (round N). collect and eval first
+# V is sft, dpo (DPO round 1), dpoN (round N), rl (RL round 1) or rlN; FROM (rl only) is
+# the model the RL round starts from. collect and eval first
 # rebuild V's merged weights if the local SSD lost them.
 set -uo pipefail
 VM="${VM_NAME:-rails-qwen-a100}" Z="${GCP_ZONE:-us-central1-a}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-MODE="${MODE:?MODE=train, collect or eval}" V="${V:?V=sft, dpo or dpoN}"
+MODE="${MODE:?MODE=train, collect or eval}" V="${V:?V=sft, dpo, dpoN, rl or rlN}"
 deadline=$(( $(date +%s) + ${HOURS:-12} * 3600 ))
 log() { echo "$(date -u +%T) $*"; }
 remote() { gcloud compute ssh "$VM" --zone "$Z" --command "$1" 2>&1 | { grep -v 'Ignoring unknown' || true; }; return "${PIPESTATUS[0]}"; }
@@ -25,6 +26,8 @@ case "$V" in
   sft) BUILD="bash training/sft/run.sh" LOGS=runs/sft ;;
   dpo) BUILD="ROUND=1 bash training/dpo/run.sh" LOGS=runs/dpo ;;
   dpo*) BUILD="ROUND=${V#dpo} bash training/dpo/run.sh" LOGS=runs/dpo ;;
+  rl) BUILD="FROM=${FROM:-} ROUND=1 bash training/rl/run.sh" LOGS=runs/rl ;;
+  rl*) BUILD="FROM=${FROM:-} ROUND=${V#rl} bash training/rl/run.sh" LOGS=runs/rl ;;
   *) echo "unknown V=$V" >&2; exit 2 ;;
 esac
 OUT=$LOGS/$NAME
@@ -36,7 +39,8 @@ case "$MODE" in
   collect|eval)
     # Collecting needs varied attempts, so sampling is unseeded; eval keeps the frozen seed.
     stage=validation seed=""
-    [ "$MODE" = collect ] && stage=train seed="SAMPLING_SEED=none"
+    # ATTEMPTS (default 6) is attempts per train task; a rerun with more tops each task up.
+    [ "$MODE" = collect ] && stage=train seed="SAMPLING_SEED=none" SERVE="ATTEMPTS=${ATTEMPTS:-6} $SERVE"
     RUNS=runs/bench-$NAME-$stage
     DONE="test -f $RUNS/report.txt"
     JOB="rm -f $RUNS/report.txt && tmux new-session -d -s job \"$BUILD >> $LOGS/run.log 2>&1 && sg docker -c '$seed $SERVE bash baseline/serve-qwen.sh' >> $LOGS/serve.log 2>&1 && $SERVE bash training/run-bench.sh $stage --inside 2>&1 | tee -a $RUNS.log\"" ;;
@@ -54,6 +58,8 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
   if [ "$started" = 1 ] && remote "cd ~/rails-model-lab && $DONE && ! tmux has-session -t job 2>/dev/null" >/dev/null 2>&1; then
     log "done"
     [ "$MODE" = train ] && remote "tail -3 ~/rails-model-lab/$OUT/train.log"
+    # Back the new adapter up off the VM; a failed upload must not fail the round.
+    [ "$MODE" = train ] && { bash "$REPO/training/push-adapter.sh" "$OUT" || log "adapter upload failed"; }
     [ "$MODE" != train ] && remote "cat ~/rails-model-lab/$RUNS/report.txt"
     stop_vm; exit 0
   fi
@@ -72,7 +78,11 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
       fi
       (cd "$REPO" && VM_NAME="$VM" bash baseline/push.sh >/dev/null 2>&1) || { log "push failed"; continue; }
       remote "cd ~/rails-model-lab && mkdir -p $LOGS && QWEN=qwen3.5-27b bash baseline/provision.sh > $LOGS/provision.log 2>&1" \
-        || { log "provision failed"; continue; }
+        || { log "provision failed"; fails=$((${fails:-0} + 1))
+             # A restarted spot VM sometimes comes back without a working GPU;
+             # retrying on the same host never fixes it, so stop and start fresh.
+             [ "$fails" -ge 3 ] && { fails=0; stop_vm; }; continue; }
+      fails=0
       remote "cd ~/rails-model-lab && $JOB" && { started=1 booted=0; log "job started"; } ;;
     *) log "ssh lost, rechecking" ;;  # neither marker: SSH itself failed, e.g. a preemption
   esac
