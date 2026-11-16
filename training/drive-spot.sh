@@ -52,6 +52,9 @@ case "$MODE" in
     SERVE="${SERVE/MAX_MODEL_LEN=131072/MAX_MODEL_LEN=262144}"
     RUNS=runs/benchmark/$NAME-atomic
     DONE="test -f $RUNS/report.txt"
+    # Download the merged weights instead of rebuilding them on every restart.
+    hf_repo="${HF_ADAPTER_REPO:-$(cat "$REPO/runs/hf-adapter-repo" 2>/dev/null || true)}"
+    [ "$V" = base ] || BUILD="HF_ADAPTER_REPO=$hf_repo bash training/merged-cache.sh $NAME '$BUILD'"
     JOB="mkdir -p runs/benchmark && rm -f $RUNS/report.txt && tmux new-session -d -s job \"$BUILD >> $LOGS/run.log 2>&1 && sg docker -c '$SERVE bash baseline/serve-qwen.sh' >> $LOGS/serve.log 2>&1 && $SERVE ATTEMPTS=3 RUNS_DIR=$RUNS bash baseline/run-baseline.sh atomic --inside 2>&1 | tee -a $RUNS.log\"" ;;
   *) echo "unknown MODE=$MODE" >&2; exit 2 ;;
 esac
