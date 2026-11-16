@@ -47,6 +47,10 @@ mapfile -t multistep < <(ls vendor/ai-evals/tasks | grep '^ms-' | grep -vxF -f <
 
 for pass in 1 2 3; do
   echo "=== $stage pass $pass $(date -u +%FT%TZ)"
+  # A spot preemption leaves the killed trials' containers and networks behind;
+  # enough of them exhaust docker's address pools and every new trial fails.
+  sudo docker container prune -f >/dev/null || true
+  sudo docker network prune -f >/dev/null || true
   case "$stage" in
     atomic) mapfile -t f < <(task_flags "${atomic[@]}"); lemans --attempts "${ATTEMPTS:-1}" "${f[@]}" ;;
     official)

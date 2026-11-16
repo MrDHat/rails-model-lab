@@ -18,7 +18,7 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 MODE="${MODE:?MODE=train, collect or eval}" V="${V:?V=sft, dpo, dpoN, rl or rlN}"
 deadline=$(( $(date +%s) + ${HOURS:-12} * 3600 ))
 log() { echo "$(date -u +%T) $*"; }
-remote() { gcloud compute ssh "$VM" --zone "$Z" --command "$1" 2>&1 | { grep -v 'Ignoring unknown' || true; }; return "${PIPESTATUS[0]}"; }
+remote() { gcloud compute ssh "$VM" --zone "$Z" --ssh-flag=-oServerAliveInterval=30 --ssh-flag=-oServerAliveCountMax=4 --command "$1" 2>&1 | { grep -v 'Ignoring unknown' || true; }; return "${PIPESTATUS[0]}"; }
 status() { gcloud compute instances describe "$VM" --zone "$Z" --format='value(status)'; }
 stop_vm() { gcloud compute instances stop "$VM" --zone "$Z" --discard-local-ssd=true >/dev/null 2>&1; log "VM stopped"; }
 
