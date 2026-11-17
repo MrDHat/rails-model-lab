@@ -36,6 +36,40 @@ Infrastructure failures during these runs, all rerun as invalid: a Docker
 build race on the first launch (fixed with BuildKit), and three Modal GPU
 preemptions in four minutes.
 
+## Post-trained model against the untrained one, 3 attempts
+
+Both on one spot A100 80GB on GCP, vLLM, the settings above, 3 attempts per
+task (`MODE=benchmark V=rl3|base bash training/drive-spot.sh`), 15–17 Nov.
+
+| Model | Scored | Credit | Credit on the 17 tasks both have | Tasks with a full-credit fix |
+|---|---|---|---|---|
+| Qwen3.5-27B + RL round 3 | 42 / 57 | **12.5** | 13.9 | 3 |
+| Qwen3.5-27B, untrained | 53 / 57 | **12.0** | 13.4 | 2 |
+
+Post-training does not move the benchmark. It took validation on our own
+tasks from 23 to 40 of 51 attempts fully solved (see
+[training/README.md](../training/README.md)), but on these 19 tasks the two
+models are within noise: the untrained model alone scored 7.4 in the earlier
+1-attempt run and 12.0 here. RL3 trades tasks rather than adding them. It
+gains full credit on `at-legacy-conversions` (2/3) and
+`at-enqueue-after-commit` (1/3), and loses it on `at-tenant-isolation` (2/3
+to 0/3). Its tests pass on 7 tasks against 11 for the untrained model.
+
+RL3's failed attempts also run much longer: 278 to 400 steps on three tasks,
+against 39 to 125 for the untrained model. The unscored trials are the
+longest ones. A single model reply took longer than the transport's
+26-minute limit, so the trial was marked invalid and retried, and the last
+retries were stopped. RL3 has no scored trial on `at-scoped-broadcast` or
+`at-variant-processed-once`, which count as 0 in the 12.5.
+
+Spot preemptions, often every 40 to 60 minutes, stretched about 6 GPU hours
+of work over 34 hours. Three fixes keep a run going across them:
+- containers and networks left by killed trials are pruned before each
+  pass;
+- SSH calls have a keepalive;
+- a trained model's merged weights are downloaded on restart instead of
+  rebuilt.
+
 ## Published atomic scores for comparison
 
 From the benchmark's own `runs/2026-10-06-atomic-tasks-revamped/`:
