@@ -40,7 +40,9 @@ def patch(before, after)
     end
     write.(before)
     git(repo, "add", "-A")
-    git(repo, "-c", "user.name=bench", "-c", "user.email=bench@localhost", "commit", "-q", "--allow-empty", "-m", "before")
+    # No auto gc: it runs in the background and races the temp dir's removal.
+    git(repo, "-c", "gc.auto=0", "-c", "maintenance.auto=false", "-c", "user.name=bench", "-c", "user.email=bench@localhost",
+        "commit", "-q", "--allow-empty", "-m", "before")
     write.(after)
     git(repo, "add", "-A")
     git(repo, "diff", "--cached", "--binary")
@@ -170,6 +172,7 @@ APP_INSTRUCTION = <<~MD
 
 MD
 
+APP_TEST_DIRS = %w[models controllers jobs mailers integration services helpers].freeze
 app_files = lambda do |app|
   root = File.join(ROOT, "apps", app)
   Dir.glob("**/*", File::FNM_DOTMATCH, base: root).reject { File.directory?(File.join(root, _1)) }
@@ -208,6 +211,10 @@ Dir[File.join(ROOT, "app-tasks", "*")].sort.each do |task_dir|
   end
 
   start = app_files.(app)
+  # The app's own tests run before the hidden ones, so the agent's edits to them
+  # are undone. Only folders the app has: restoring a missing path fails.
+  restore = %w[Gemfile Gemfile.lock test/test_helper.rb] +
+            APP_TEST_DIRS.map { "test/#{_1}" }.select { |dir| start.keys.any? { _1.start_with?("#{dir}/") } }
   File.write(File.join(dir, "environment.patch"), patch({}, start))
   File.write(File.join(dir, "solution.patch"), patch(start, start.merge(overlay.(File.join(task_dir, "reference")))))
   File.write(File.join(dir, "instruction.md"), <<~MD)
@@ -216,7 +223,7 @@ Dir[File.join(ROOT, "app-tasks", "*")].sort.each do |task_dir|
     description: #{task.fetch("title").to_json}
     tags: [app, #{split}]
     environment: #{app}
-    restore: [Gemfile, Gemfile.lock, test/test_helper.rb, test/models, test/controllers, test/jobs, test/mailers, test/integration]
+    restore: [#{restore.join(", ")}]
     metadata:
       app: #{app}
       area: #{task.fetch("area")}
