@@ -1,0 +1,35 @@
+pt-BR:
+  date:
+    formats:
+      default: "%d/%m/%Y"
+      short: "%d de %B"
+      long: "%d de %B de %Y"
+    day_names: [domingo, segunda-feira, terça-feira, quarta-feira, quinta-feira, sexta-feira, sábado]
+    abbr_day_names: [dom, seg, ter, qua, qui, sex, sáb]
+    month_names: [~, janeiro, fevereiro, março, abril, maio, junho, julho, agosto, setembro, outubro, novembro, dezembro]
+    abbr_month_names: [~, jan, fev, mar, abr, mai, jun, jul, ago, set, out, nov, dez]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%a, %d de %B de %Y, %H:%M:%S %z"
+      short: "%a %-d %b, %H:%M"
+      long: "%A, %-d de %B de %Y às %H:%M"
+    am: ""
+    pm: ""
+  sms:
+    moved: "Olá %{name}, sua consulta com %{practitioner} mudou para %{time} na Mender %{location}."
+    reminder: "Olá %{name}, lembrete da sua consulta com %{practitioner} em %{time} na Mender %{location}. Responda C para cancelar."
+    waitlist_offer: "Olá %{name}, abriu um horário com %{practitioner} em %{time}. Reserve pelo app da Mender antes que outra pessoa o faça."
+  appointment_mailer:
+    confirmation:
+      subject: "Sua consulta na Mender em %{time}"
+      greeting: "Olá %{name},"
+      body: "Sua sessão de %{treatment} com %{practitioner} está marcada para %{time} na Mender %{location}, %{address}."
+      manage: "Para ver ou cancelar sua reserva, abra:"
+    cancellation:
+      subject: "Cancelada: sua consulta na Mender em %{time}"
+      greeting: "Olá %{name},"
+      body: "Sua sessão de %{treatment} em %{time} foi cancelada."

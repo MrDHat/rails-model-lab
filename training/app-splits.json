@@ -42,13 +42,17 @@
     "receipt-signed-link"
   ],
   "test": [
+    "appointment-moved-text",
     "claim-submission-retry",
     "clinical-notes-encrypted",
+    "invoice-polling-etag",
     "manage-booking-link",
+    "never-booked-patients",
     "no-double-booking",
     "no-show-status",
     "patient-appointment-counts",
     "patient-phone-format",
+    "practitioner-buffer-time",
     "slot-search-rate-limit"
   ]
 }
