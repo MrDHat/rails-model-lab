@@ -10,8 +10,8 @@ class AppointmentMailerTest < ActionMailer::TestCase
   end
 
   test "cancellation" do
-    mail = AppointmentMailer.cancellation(appointments(:marcos_cancelled))
-    assert_equal ["marcos@example.com"], mail.to
-    assert_match "Cancelled: your Mender appointment", mail.subject
+    mail = AppointmentMailer.cancellation(appointments(:julia_monday))
+    assert_equal ["julia@example.com"], mail.to
+    assert_equal "Cancelled: your Mender appointment on Mon 15 Jun, 09:00", mail.subject
   end
 end

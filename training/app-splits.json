@@ -43,6 +43,7 @@
   ],
   "test": [
     "appointment-moved-text",
+    "audit-staff-member",
     "claim-submission-retry",
     "clinical-notes-encrypted",
     "invoice-polling-etag",
@@ -51,8 +52,11 @@
     "no-double-booking",
     "no-show-status",
     "patient-appointment-counts",
+    "patient-language-messages",
     "patient-phone-format",
     "practitioner-buffer-time",
+    "practitioner-patients",
+    "schedule-page-queries",
     "slot-search-rate-limit"
   ]
 }
