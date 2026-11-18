@@ -1,0 +1,8 @@
+<%= t(".greeting", name: @patient.first_name) %>
+
+<%= t(".body", treatment: @appointment.treatment.name, practitioner: @appointment.practitioner.name,
+               time: l(@appointment.starts_at, format: :long), location: @appointment.location.name,
+               address: @appointment.location.address) %>
+
+<%= t(".manage") %>
+<%= booking_url(@appointment.manage_token) %>

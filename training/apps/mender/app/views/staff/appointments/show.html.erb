@@ -32,7 +32,7 @@
 <h2>Clinical note</h2>
 <% note = @appointment.clinical_note %>
 <% if note&.signed? %>
-  <p class="note"><%= simple_format(note.body) %></p>
+  <div class="note"><%= simple_format(note.body) %></div>
   <p>Signed <%= l(note.signed_at, format: :short) %></p>
 <% elsif note %>
   <%= form_with url: staff_appointment_clinical_note_path(@appointment), method: :patch do |f| %>
