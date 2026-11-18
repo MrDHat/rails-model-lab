@@ -43,10 +43,20 @@
   ],
   "test": [
     "appointment-moved-text",
+    "article-cdn-cache",
+    "article-slugs",
+    "article-status-validate",
+    "article-view-count",
     "audit-staff-member",
+    "briefing-bulk-enqueue",
+    "byline-sentence",
     "claim-submission-retry",
+    "clean-language-validator",
     "clinical-notes-encrypted",
+    "comment-alert-discard",
+    "front-page-order",
     "invoice-polling-etag",
+    "letters-email-names",
     "manage-booking-link",
     "never-booked-patients",
     "no-double-booking",
@@ -56,7 +66,13 @@
     "patient-phone-format",
     "practitioner-buffer-time",
     "practitioner-patients",
+    "reader-comments-async",
+    "reader-token-rotate",
+    "related-stories",
     "schedule-page-queries",
-    "slot-search-rate-limit"
+    "section-atom-feed",
+    "section-rename-touch",
+    "slot-search-rate-limit",
+    "wire-import-errors"
   ]
 }
