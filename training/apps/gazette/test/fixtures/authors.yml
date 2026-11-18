@@ -1,0 +1,16 @@
+hana:
+  name: Hana Reti
+  email: hana.reti@gazette.example
+  role: Local government reporter
+eli:
+  name: Eli Moana
+  email: eli.moana@gazette.example
+  role: Transport reporter
+tom:
+  name: Tom Bell
+  email: tom.bell@gazette.example
+  role: Sports editor
+priya:
+  name: Priya Nair
+  email: priya.nair@gazette.example
+  role: Business editor

@@ -1,0 +1,7 @@
+<% content_for :title, "#{@section.name} | The Harbour Gazette" %>
+<h1><%= @section.name %></h1>
+<% if @section.description.present? %><p class="description"><%= @section.description %></p><% end %>
+<%= render partial: "articles/teaser", collection: @articles, as: :teaser %>
+<% if @articles.size == SectionsController::PER_PAGE %>
+  <p><%= link_to "Older stories", section_path(@section, page: page_number + 1) %></p>
+<% end %>

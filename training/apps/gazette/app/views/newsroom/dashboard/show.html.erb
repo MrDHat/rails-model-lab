@@ -1,0 +1,29 @@
+<h1>Desk</h1>
+<p class="counts">
+  <%= link_to pluralize(@dashboard.pending_comments, "comment") + " to moderate", newsroom_comments_path %> ·
+  <%= link_to pluralize(@dashboard.unread_letters, "new letter"), newsroom_letters_path(status: "received") %>
+</p>
+<h2>Scheduled</h2>
+<ul class="scheduled">
+  <% @dashboard.scheduled.each do |article| %>
+    <li><%= link_to article.headline, edit_newsroom_article_path(article) %> (<%= dateline(article.publish_at) %>)</li>
+  <% end %>
+</ul>
+<h2>Drafts</h2>
+<ul class="drafts">
+  <% @dashboard.drafts.each do |article| %>
+    <li><%= link_to article.headline, edit_newsroom_article_path(article) %></li>
+  <% end %>
+</ul>
+<h2>From the wire</h2>
+<ul class="wire">
+  <% @dashboard.wire_drafts.each do |article| %>
+    <li><%= link_to article.headline, edit_newsroom_article_path(article) %></li>
+  <% end %>
+</ul>
+<h2>Most read today</h2>
+<ol class="most-read">
+  <% @dashboard.most_read_today.each do |article| %>
+    <li><%= link_to article.headline, article_path(article) %> (<%= article.views_count %>)</li>
+  <% end %>
+</ol>

@@ -1,0 +1,24 @@
+harbour_bridge_transport:
+  article: harbour_bridge
+  tag: transport
+harbour_bridge_council:
+  article: harbour_bridge
+  tag: council
+council_budget_council:
+  article: council_budget
+  tag: council
+council_budget_budget:
+  article: council_budget
+  tag: budget
+rugby_final_rugby:
+  article: rugby_final
+  tag: rugby
+port_profits_port:
+  article: port_profits
+  tag: port
+port_profits_budget:
+  article: port_profits
+  tag: budget
+cafe_column_food:
+  article: cafe_column
+  tag: food

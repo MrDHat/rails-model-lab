@@ -1,0 +1,27 @@
+<h1><%= @article.headline %></h1>
+<p class="status">Status: <%= status_label(@article) %>
+  · <%= link_to "Preview", article_path(@article) %>
+  <% if @article.live? %>· <%= pluralize(@article.views_count, "view") %><% end %>
+</p>
+<div class="transitions">
+  <% unless @article.published? || @article.spiked? %>
+    <%= button_to "Publish now", transition_newsroom_article_path(@article, event: "publish"), method: :patch %>
+    <%= form_with url: transition_newsroom_article_path(@article), method: :patch do |f| %>
+      <%= f.hidden_field :event, value: "schedule" %>
+      <%= f.datetime_local_field :publish_at %>
+      <%= f.submit "Schedule" %>
+    <% end %>
+    <%= button_to "Spike", transition_newsroom_article_path(@article, event: "spike"), method: :patch %>
+  <% end %>
+  <% if @article.published? %>
+    <%= button_to "Unpublish", transition_newsroom_article_path(@article, event: "unpublish"), method: :patch %>
+  <% end %>
+</div>
+<%= render "form", article: @article %>
+<% if @article.published? %>
+  <h2>Add a correction</h2>
+  <%= form_with url: newsroom_article_corrections_path(@article) do |f| %>
+    <%= f.text_area :body, name: "correction[body]", rows: 3 %>
+    <%= f.submit "Add correction" %>
+  <% end %>
+<% end %>

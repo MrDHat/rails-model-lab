@@ -1,0 +1,8 @@
+Good morning <%= @reader.display_name %>, here is what Harbour readers read yesterday.
+
+<% @articles.each do |article| %>
+<%= article.headline %>
+<%= article.dek %>
+<%= article_url(article) %>
+
+<% end %>

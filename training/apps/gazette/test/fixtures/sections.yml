@@ -1,0 +1,17 @@
+news:
+  name: News
+  slug: news
+  description: Wellington and the harbour towns.
+sport:
+  name: Sport
+  slug: sport
+business:
+  name: Business
+  slug: business
+opinion:
+  name: Opinion
+  slug: opinion
+wire:
+  name: Wire
+  slug: wire
+  description: Agency copy waiting for an editor.

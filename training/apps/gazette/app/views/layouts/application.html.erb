@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "The Harbour Gazette" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= stylesheet_link_tag :app %>
+    <%= yield :head %>
+  </head>
+  <body>
+    <header class="masthead">
+      <%= link_to "The Harbour Gazette", root_path, class: "title" %>
+      <%= form_with url: search_path, method: :get, class: "search" do |f| %>
+        <%= f.search_field :q, value: params[:q], placeholder: "Search" %>
+      <% end %>
+      <% if current_editor %><%= link_to "Newsroom", newsroom_root_path, class: "newsroom" %><% end %>
+    </header>
+    <% flash.each do |type, message| %>
+      <p class="flash <%= type %>"><%= message %></p>
+    <% end %>
+    <main><%= yield %></main>
+    <footer><%= link_to "Write to the editor", new_letter_path %></footer>
+  </body>
+</html>

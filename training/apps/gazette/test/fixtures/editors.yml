@@ -1,0 +1,10 @@
+grace:
+  name: Grace Whatu
+  email: grace@gazette.example
+  access_code: "5521"
+  chief: true
+owen:
+  name: Owen Clark
+  email: owen@gazette.example
+  access_code: "3307"
+  author: eli

@@ -1,0 +1,5 @@
+<h1><%= @letter.subject %></h1>
+<p class="from"><%= @letter.signature %> &lt;<%= @letter.email %>&gt;</p>
+<div class="body"><%= simple_format(@letter.body) %></div>
+<%= button_to "Accept", newsroom_letter_path(@letter, status: "accepted"), method: :patch %>
+<%= button_to "Decline", newsroom_letter_path(@letter, status: "declined"), method: :patch %>

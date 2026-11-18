@@ -1,0 +1,14 @@
+<h1>Wire</h1>
+<%= form_with url: newsroom_wire_imports_path do |f| %>
+  <p><%= f.label :payload, "Paste a wire delivery (JSON)" %> <%= f.text_area :payload, rows: 10 %></p>
+  <p><%= f.submit "Import" %></p>
+<% end %>
+<table>
+  <% @imports.each do |import| %>
+    <tr>
+      <td><%= dateline(import.received_at) %></td>
+      <td><%= import.items_count %> items</td>
+      <td><%= import.created_count %> new, <%= import.skipped_count %> already in, <%= import.failed_count %> failed</td>
+    </tr>
+  <% end %>
+</table>

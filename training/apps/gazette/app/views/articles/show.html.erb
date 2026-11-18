@@ -1,0 +1,40 @@
+<% content_for :title, "#{@article.headline} | The Harbour Gazette" %>
+<article class="story">
+  <p class="kicker"><%= link_to @article.section.name, section_path(@article.section) %></p>
+  <% unless @article.live? %><p class="preview">Preview: this story is <%= status_label(@article) %>.</p><% end %>
+  <h1><%= @article.headline %></h1>
+  <% if @article.dek.present? %><p class="dek"><%= @article.dek %></p><% end %>
+  <p class="byline"><%= @article.byline %></p>
+  <p class="meta"><%= dateline(@article.published_at) %> · <%= @article.reading_minutes %> min read</p>
+  <% if current_editor %><p><%= link_to "Edit", edit_newsroom_article_path(@article) %></p><% end %>
+  <div class="body"><%= simple_format(@article.body) %></div>
+  <% if @article.corrections.any? %>
+    <aside class="corrections">
+      <h2>Corrections</h2>
+      <% @article.corrections.each do |correction| %>
+        <p><%= dateline(correction.created_at) %>: <%= correction.body %></p>
+      <% end %>
+    </aside>
+  <% end %>
+  <% if @article.tags.any? %>
+    <p class="tags"><% @article.tags.each do |tag| %><%= link_to tag.name, tag_path(tag) %> <% end %></p>
+  <% end %>
+</article>
+<% if @related.any? %>
+  <section class="related">
+    <h2>Read next</h2>
+    <% @related.each do |article| %>
+      <p><%= link_to article.headline, article_path(article) %></p>
+    <% end %>
+  </section>
+<% end %>
+<section class="comments">
+  <h2><%= pluralize(@comments.size, "comment") %></h2>
+  <% @comments.each do |comment| %>
+    <div class="comment" id="<%= dom_id(comment) %>">
+      <p class="who"><%= comment.reader.display_name %></p>
+      <p><%= comment.body %></p>
+    </div>
+  <% end %>
+  <p class="app-note">Comment from the Gazette app.</p>
+</section>
