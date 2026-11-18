@@ -100,13 +100,19 @@ QWEN=qwen3.5-27b bash training/run-bench.sh heldout    # validation + sealed, 3 
 ## App tasks
 
 The tasks above are each one file. The benchmark's are changes to whole
-Rails apps, so `app-tasks/` holds 35 harder ones, each a change to one of two
-small apps with their own test suites:
+Rails apps, so `app-tasks/` holds 67 harder ones, each a change to one of four
+apps with their own test suites:
 
 - [Toolshed](apps/toolshed), a makerspace's tool lending (members, tools,
   categories, loans, a mailer and a nightly job), 16 tasks.
 - [Crumb](apps/crumb), a Paris bakery's orders: a JSON API for its mobile
   app, HTML admin pages, a mailer and an SMS job, 19 tasks.
+- [Mender](apps/mender), a chain of physiotherapy clinics: bookings, clinical
+  notes, invoices and insurance claims, with a patient-app API and staff
+  pages, 16 tasks. About ten times the size of the first two.
+- [Gazette](apps/gazette), a local newspaper: the website, the newsroom, a
+  reader-app API, a wire import and a morning briefing, 16 tasks. About the
+  size of Mender.
 
 A fix usually touches several files: a migration, a model, a controller, a
 view, a mailer, a job.
@@ -133,11 +139,30 @@ bash training/check-app-tasks.sh --schema    # first regenerate db/schema.rb for
 ```
 
 [`app-splits.json`](app-splits.json) fixes 21 training, 7 validation and 7
-sealed app tasks, with at most one task per area in each held-out set. The
-apps share one `Gemfile.lock`, so one image runs them all.
+sealed app tasks on Toolshed and Crumb, with at most one task per area in each
+held-out set. The apps share one `Gemfile.lock`, so one image runs them all.
+
+Its `test` split is every Mender and Gazette task. No other split uses those
+apps, so they check whether training carries over to a larger codebase the
+model has never seen, which validation (same apps as training) can't. They
+are mostly about Rails APIs no training task uses. Never train or tune on
+them: run them before training starts and once per finished model.
 
 `bin/build-bench` adds them to the agentic bench, where the agent gets the
-whole app in `/app`, and `run-bench.sh apps` runs them.
+whole app in `/app`. Before grading, the harness puts back the app's own
+tests (the `test/` folders the app has, and `test_helper.rb`), so an answer
+can't pass by editing them.
+
+```sh
+QWEN=qwen3.5-27b bash training/run-bench.sh apps    # train, validation and sealed app tasks
+QWEN=qwen3.5-27b bash training/run-bench.sh test    # the test split, 3 attempts each
+```
+
+Every stage also writes `health.txt` with
+[`bin/attempt-health`](bin/attempt-health): for each model and app, the share
+of attempts with a reply cut off at the output-token cap (usually a thinking
+loop), that hit the step or time limit, or that changed nothing, plus median
+steps and output tokens. Credit alone hid that RL round 3 had started looping.
 
 ## SFT: train on the model's own successes
 
