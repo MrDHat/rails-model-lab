@@ -1,0 +1,10 @@
+julia_last_week:
+  appointment: julia_last_week
+  practitioner: ana
+  body: Left knee, patellar tendinopathy. Load tolerance improving; progress to single-leg squats.
+  signed_at: 2026-06-08 13:00:00
+
+lucia_last_week:
+  appointment: lucia_last_week
+  practitioner: carla
+  body: Lower back stiffness after long drives. Mobility work and walking plan.

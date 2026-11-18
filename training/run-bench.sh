@@ -3,9 +3,10 @@
 # agentic bench with the baseline's harness, agent, transport and limits,
 # inside tmux so it survives SSH disconnects.
 #
-#   bash training/run-bench.sh proof     # oracle and no-op agents on all 60 tasks: 1.0 and 0 each, no model
+#   bash training/run-bench.sh proof     # oracle and no-op agents on every task: 1.0 and 0 each, no model
 #   QWEN=qwen3.5-27b bash training/run-bench.sh heldout   # validation + sealed tasks, 3 attempts each
-#   QWEN=qwen3.5-27b bash training/run-bench.sh apps      # app tasks (training/app-tasks), 3 attempts each
+#   QWEN=qwen3.5-27b bash training/run-bench.sh apps      # app tasks of the train, validation and sealed splits, 3 attempts each
+#   QWEN=qwen3.5-27b bash training/run-bench.sh test      # test-split app tasks (unseen apps), ATTEMPTS (default 3) each
 #   QWEN=qwen3.5-27b bash training/run-bench.sh train     # train-split tasks, ATTEMPTS (default 6) each, for SFT data
 #   QWEN=qwen3.5-27b-sft bash training/run-bench.sh validation   # validation tasks of both sets, 3 attempts each
 #
@@ -14,7 +15,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source baseline/settings.sh
 
-stage="${1:?usage: run-bench.sh proof|heldout|apps|train|validation}"
+stage="${1:?usage: run-bench.sh proof|heldout|apps|test|train|validation}"
 if [ -z "${TMUX:-}" ] && [ "${2:-}" != --inside ]; then
   session="bench-${QWEN//./_}-$stage"
   tmux new-session -d -s "$session" \
@@ -26,7 +27,8 @@ fi
 eval "$(~/.rbenv/bin/rbenv init - bash)" 2>/dev/null || true
 ruby training/bin/build-bench
 mapfile -t heldout < <(jq -r '.validation[], .sealed[]' training/splits.json)
-mapfile -t apps < <(ls training/app-tasks)
+mapfile -t apps < <(jq -r '.train[], .validation[], .sealed[]' training/app-splits.json)
+mapfile -t test_tasks < <(jq -r '.test[]' training/app-splits.json)
 mapfile -t train < <(jq -r '.train[]' training/splits.json training/app-splits.json)
 mapfile -t validation < <(jq -r '.validation[]' training/splits.json training/app-splits.json)
 task_flags() { for t in "$@"; do printf -- '--task\n%s\n' "$t"; done; }
@@ -46,7 +48,7 @@ case "$stage" in
       bundle exec lemans report "runs/bench-proof-$agent" -A model | tee "runs/bench-proof-$agent/report.txt"
     done
     ;;
-  heldout|apps|train|validation)
+  heldout|apps|test|train|validation)
     test "$(cat runs/inference/proxy.model 2>/dev/null)" = "$MODEL" && curl -sf "http://127.0.0.1:$PROXY_PORT/v1/models" >/dev/null \
       || { echo "Run QWEN=$QWEN baseline/serve-qwen.sh first" >&2; exit 1; }
     export GPUSTACK_API_BASE="http://127.0.0.1:$PROXY_PORT/v1"
@@ -55,6 +57,7 @@ case "$stage" in
     mkdir -p "$runs"
     case "$stage" in
       apps) mapfile -t f < <(task_flags "${apps[@]}") ;;
+      test) mapfile -t f < <(task_flags "${test_tasks[@]}") ;;
       train) mapfile -t f < <(task_flags "${train[@]}"); ATTEMPTS="${ATTEMPTS:-6}" ;;
       validation) mapfile -t f < <(task_flags "${validation[@]}") ;;
       *) mapfile -t f < <(task_flags "${heldout[@]}") ;;
@@ -65,6 +68,7 @@ case "$stage" in
     done
     bundle exec lemans report "$runs" --skip-invalid -A model-task | tee "$runs/report-by-task.txt"
     bundle exec lemans report "$runs" --skip-invalid -A model | tee "$runs/report.txt"
+    ruby training/bin/attempt-health --by-app "$runs" | tee "$runs/health.txt"
     ;;
   *) echo "unknown stage $stage" >&2; exit 2 ;;
 esac

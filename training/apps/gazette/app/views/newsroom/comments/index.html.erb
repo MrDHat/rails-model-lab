@@ -1,0 +1,15 @@
+<h1>Comments: <%= @status %></h1>
+<p>
+  <% Comment.statuses.each_key do |status| %>
+    <%= link_to status, newsroom_comments_path(status: status) %>
+  <% end %>
+</p>
+<% @comments.each do |comment| %>
+  <div class="comment" id="<%= dom_id(comment) %>">
+    <p><strong><%= comment.reader.display_name %></strong> on <%= link_to comment.article.headline, article_path(comment.article) %></p>
+    <p><%= comment.body %></p>
+    <% unless comment.approved? %><%= button_to "Approve", newsroom_comment_path(comment, status: "approved"), method: :patch %><% end %>
+    <% unless comment.rejected? %><%= button_to "Reject", newsroom_comment_path(comment, status: "rejected"), method: :patch %><% end %>
+    <%= button_to "Delete as spam", newsroom_comment_path(comment), method: :delete %>
+  </div>
+<% end %>

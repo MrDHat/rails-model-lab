@@ -1,0 +1,5 @@
+julia_last_week:
+  invoice: julia_last_week
+  insurer: saude
+  status: 0
+  amount_cents: 14400

@@ -1,0 +1,12 @@
+<h1>Edit <%= @patient.name %></h1>
+<% if @patient.errors.any? %>
+  <ul class="errors"><% @patient.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+<% end %>
+<%= form_with model: @patient, url: staff_patient_path(@patient) do |f| %>
+  <%= f.label :name %> <%= f.text_field :name %>
+  <%= f.label :email %> <%= f.email_field :email %>
+  <%= f.label :phone %> <%= f.telephone_field :phone %>
+  <%= f.label :birth_date %> <%= f.date_field :birth_date %>
+  <%= f.label :locale, "Language" %> <%= f.select :locale, [["English", "en"], ["Português", "pt-BR"]] %>
+  <%= f.submit "Save" %>
+<% end %>

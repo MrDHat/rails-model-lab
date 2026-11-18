@@ -1,0 +1,7 @@
+Hello <%= @invoice.patient.first_name %>,
+
+Invoice <%= @invoice.number %> for <%= number_to_currency(@invoice.total_cents / 100.0, unit: "R$ ") %> is ready.
+<% if @invoice.insurer_share_cents.positive? -%>
+Your insurer covers <%= number_to_currency(@invoice.insurer_share_cents / 100.0, unit: "R$ ") %>; we claim that part for you.
+<% end -%>
+You owe <%= number_to_currency(@invoice.patient_share_cents / 100.0, unit: "R$ ") %>, due by <%= l(@invoice.due_on, format: :long) %>.

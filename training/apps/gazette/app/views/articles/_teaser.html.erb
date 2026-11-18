@@ -1,0 +1,5 @@
+<article class="teaser" id="<%= dom_id(teaser) %>">
+  <h3><%= link_to teaser.headline, article_path(teaser) %></h3>
+  <% if teaser.dek.present? %><p class="dek"><%= teaser.dek %></p><% end %>
+  <p class="meta"><%= teaser.byline %> · <%= dateline(teaser.published_at) %></p>
+</article>

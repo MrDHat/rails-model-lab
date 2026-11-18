@@ -1,0 +1,11 @@
+julia_last_week:
+  invoice: julia_last_week
+  description: Physiotherapy session (2026-06-08)
+  quantity: 1
+  unit_price_cents: 18000
+
+lucia_last_week:
+  invoice: lucia_last_week
+  description: Physiotherapy session (2026-06-08)
+  quantity: 1
+  unit_price_cents: 18000

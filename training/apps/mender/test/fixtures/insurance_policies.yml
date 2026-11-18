@@ -1,0 +1,13 @@
+julia_saude:
+  patient: julia
+  insurer: saude
+  member_number: SM-0042
+  coverage_percent: 80
+  valid_until: 2026-12-31
+
+lucia_vida:
+  patient: lucia
+  insurer: vida
+  member_number: VS-7781
+  coverage_percent: 50
+  valid_until: 2026-03-31

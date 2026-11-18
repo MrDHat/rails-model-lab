@@ -1,0 +1,14 @@
+<h1>Waitlist</h1>
+<table class="waitlist">
+  <tbody>
+    <% @entries.each do |entry| %>
+      <tr id="<%= dom_id(entry) %>">
+        <td><%= entry.patient.name %></td>
+        <td><%= entry.practitioner.name %></td>
+        <td><%= entry.treatment.name %></td>
+        <td><%= l(entry.earliest_on) %> – <%= l(entry.latest_on) %></td>
+        <td><%= button_to "Remove", staff_waitlist_entry_path(entry), method: :delete %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

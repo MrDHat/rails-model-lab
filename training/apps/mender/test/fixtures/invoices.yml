@@ -1,0 +1,20 @@
+julia_last_week:
+  patient: julia
+  appointment: julia_last_week
+  number: MND-2026-00001
+  status: 1
+  issued_on: 2026-06-08
+  due_on: 2026-07-08
+  total_cents: 18000
+  insurer_share_cents: 14400
+
+lucia_last_week:
+  patient: lucia
+  appointment: lucia_last_week
+  number: MND-2026-00002
+  status: 2
+  issued_on: 2026-06-08
+  due_on: 2026-07-08
+  total_cents: 18000
+  insurer_share_cents: 0
+  paid_at: 2026-06-08 14:00:00

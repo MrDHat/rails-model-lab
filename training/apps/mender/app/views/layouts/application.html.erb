@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Mender" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= stylesheet_link_tag :app %>
+  </head>
+  <body>
+    <% flash.each do |type, message| %>
+      <p class="flash <%= type %>"><%= message %></p>
+    <% end %>
+    <%= yield %>
+  </body>
+</html>

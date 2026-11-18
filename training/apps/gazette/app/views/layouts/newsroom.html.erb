@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Newsroom" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= stylesheet_link_tag :app %>
+  </head>
+  <body class="newsroom">
+    <% if current_editor %>
+      <nav>
+        <%= link_to "Desk", newsroom_root_path %>
+        <%= link_to "Stories", newsroom_articles_path %>
+        <%= link_to "Comments", newsroom_comments_path %>
+        <%= link_to "Letters", newsroom_letters_path %>
+        <%= link_to "Readers", newsroom_readers_path %>
+        <%= link_to "Sections", newsroom_sections_path %>
+        <%= link_to "Wire", newsroom_wire_imports_path %>
+        <% if current_editor.chief? %><%= link_to "Settings", edit_newsroom_settings_path %><% end %>
+        <span class="who"><%= current_editor.name %></span>
+        <%= button_to "Sign out", newsroom_session_path, method: :delete %>
+      </nav>
+    <% end %>
+    <% flash.each do |type, message| %>
+      <p class="flash <%= type %>"><%= message %></p>
+    <% end %>
+    <main><%= yield %></main>
+  </body>
+</html>

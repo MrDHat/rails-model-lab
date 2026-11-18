@@ -1,0 +1,9 @@
+<h1><%= @reader.display_name %></h1>
+<p><%= @reader.email %> · joined <%= dateline(@reader.created_at) %></p>
+<h2>Comments</h2>
+<% @comments.each do |comment| %>
+  <p><%= comment.status %> on <%= comment.article.headline %>: <%= comment.body %></p>
+<% end %>
+<% if current_editor.chief? %>
+  <%= button_to "Delete account", newsroom_reader_path(@reader), method: :delete %>
+<% end %>

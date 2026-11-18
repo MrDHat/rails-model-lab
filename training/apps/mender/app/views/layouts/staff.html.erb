@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Mender staff" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= stylesheet_link_tag :app %>
+  </head>
+  <body>
+    <% if current_staff_user %>
+      <nav>
+        <%= link_to "Schedule", staff_schedule_path %>
+        <%= link_to "Patients", staff_patients_path %>
+        <%= link_to "Practitioners", staff_practitioners_path %>
+        <%= link_to "Invoices", staff_invoices_path %>
+        <%= link_to "Claims", staff_claims_path %>
+        <%= link_to "Waitlist", staff_waitlist_entries_path %>
+        <% if current_staff_user.manager? %><%= link_to "Report", staff_report_path %><% end %>
+        <span class="who"><%= current_staff_user.name %></span>
+        <%= button_to "Sign out", staff_session_path, method: :delete %>
+      </nav>
+    <% end %>
+    <% flash.each do |type, message| %>
+      <p class="flash <%= type %>"><%= message %></p>
+    <% end %>
+    <main><%= yield %></main>
+  </body>
+</html>

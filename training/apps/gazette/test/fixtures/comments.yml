@@ -1,0 +1,18 @@
+harbour_mere:
+  article: harbour_bridge
+  reader: mere
+  body: About time we had proper cycle lanes.
+  status: 1
+  created_at: 2026-09-13 19:30:00
+harbour_sam:
+  article: harbour_bridge
+  reader: sam
+  body: Another tax on people who drive to work.
+  status: 0
+  created_at: 2026-09-13 20:00:00
+rugby_lou:
+  article: rugby_final
+  reader: lou
+  body: What a finish.
+  status: 1
+  created_at: 2026-09-13 10:00:00

@@ -1,0 +1,9 @@
+<h1>Edit <%= @section.name %></h1>
+<%= form_with model: [:newsroom, @section] do |f| %>
+  <% if @section.errors.any? %>
+    <ul class="errors"><% @section.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+  <% end %>
+  <p><%= f.label :name %> <%= f.text_field :name %></p>
+  <p><%= f.label :description %> <%= f.text_area :description %></p>
+  <p><%= f.submit "Save" %></p>
+<% end %>

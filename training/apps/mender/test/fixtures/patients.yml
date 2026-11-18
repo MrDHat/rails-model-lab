@@ -1,0 +1,32 @@
+julia:
+  name: Julia Costa
+  email: julia@example.com
+  phone: "+5511987650001"
+  birth_date: 1988-04-02
+  locale: en
+
+marcos:
+  name: Marcos Oliveira
+  email: marcos@example.com
+  phone: "+5511987650002"
+  birth_date: 1975-11-20
+  locale: pt-BR
+
+lucia:
+  name: Lúcia Ferreira
+  email: lucia@example.com
+  phone: "+5521987650003"
+  locale: pt-BR
+
+tom:
+  name: Tom Becker
+  email: tom@example.com
+  phone: "+5511987650004"
+  locale: en
+
+rita:
+  name: Rita Alves
+  email: rita@example.com
+  phone: "+5511987650005"
+  locale: pt-BR
+  archived_at: 2026-01-10 12:00:00

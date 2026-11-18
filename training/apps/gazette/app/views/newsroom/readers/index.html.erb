@@ -1,0 +1,13 @@
+<h1>Readers</h1>
+<%= form_with url: newsroom_readers_path, method: :get do |f| %>
+  <%= f.search_field :q, value: params[:q] %> <%= f.submit "Search" %>
+<% end %>
+<table>
+  <% @readers.each do |reader| %>
+    <tr id="<%= dom_id(reader) %>">
+      <td><%= link_to reader.display_name, newsroom_reader_path(reader) %></td>
+      <td><%= reader.email %></td>
+      <td><%= reader.briefing? ? "briefing" : "" %></td>
+    </tr>
+  <% end %>
+</table>

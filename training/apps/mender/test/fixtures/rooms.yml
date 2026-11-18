@@ -1,0 +1,11 @@
+paulista_1:
+  location: paulista
+  name: Room 1
+
+paulista_2:
+  location: paulista
+  name: Room 2
+
+pinheiros_1:
+  location: pinheiros
+  name: Studio

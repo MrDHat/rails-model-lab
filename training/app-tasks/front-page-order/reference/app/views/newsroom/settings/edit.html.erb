@@ -1,0 +1,10 @@
+<h1>Settings</h1>
+<%= form_with url: newsroom_settings_path, method: :patch, scope: :settings do |f| %>
+  <p><%= f.label :comments_open, "Comments open across the site" %> <%= f.check_box :comments_open, checked: Setting[:comments_open] %></p>
+  <p><%= f.label :briefing_size, "Stories in the morning briefing" %> <%= f.number_field :briefing_size, value: Setting[:briefing_size], in: 1..10 %></p>
+  <p>
+    <%= f.label :front_page_order, "Front page order (section slugs, comma separated)" %>
+    <%= f.text_field :front_page_order, value: Array(Setting[:front_page_order]).join(", ") %>
+  </p>
+  <p><%= f.submit "Save" %></p>
+<% end %>

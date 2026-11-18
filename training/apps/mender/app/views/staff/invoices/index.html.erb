@@ -1,0 +1,14 @@
+<h1>Invoices: <%= @status %></h1>
+<p><% Invoice::STATUS_NAMES.each_value do |name| %><%= link_to name, staff_invoices_path(status: name) %> <% end %></p>
+<table class="invoices">
+  <tbody>
+    <% @invoices.each do |invoice| %>
+      <tr id="<%= dom_id(invoice) %>">
+        <td><%= link_to invoice.number, staff_invoice_path(invoice) %></td>
+        <td><%= invoice.patient.name %></td>
+        <td><%= money(invoice.total_cents) %></td>
+        <td><%= invoice.due_on && l(invoice.due_on) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

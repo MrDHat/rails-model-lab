@@ -1,0 +1,7 @@
+ios:
+  name: Mender iOS
+  token: ios-3f9c1d7e
+
+android:
+  name: Mender Android
+  token: android-8b2e4a60

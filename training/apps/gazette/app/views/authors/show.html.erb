@@ -1,0 +1,4 @@
+<h1><%= @author.name %></h1>
+<% if @author.role.present? %><p class="role"><%= @author.role %></p><% end %>
+<% if @author.bio.present? %><p class="bio"><%= @author.bio %></p><% end %>
+<%= render partial: "articles/teaser", collection: @articles, as: :teaser %>

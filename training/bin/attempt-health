@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# How attempts went, beyond their credit: the signs of a model going round in
+# circles. For each model (or model and app, with --by-app), over its scored
+# attempts:
+#
+#   capped     attempts with at least one reply cut off at the output-token cap
+#              (finish_reason "length"): usually a thinking loop
+#   limit      attempts that hit the step or time limit
+#   no patch   attempts that changed nothing
+#   steps, out median steps and median output tokens per attempt
+#
+#   ruby training/bin/attempt-health [--by-app] RUNS_DIR [RUNS_DIR ...]
+require "json"
+
+by_app = ARGV.delete("--by-app")
+abort "usage: attempt-health [--by-app] RUNS_DIR [RUNS_DIR ...]" if ARGV.empty?
+
+def median(values)
+  return 0 if values.empty?
+
+  sorted = values.sort
+  mid = sorted.size / 2
+  sorted.size.odd? ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0
+end
+
+def read_json(path) = JSON.parse(File.read(path, encoding: "UTF-8"))
+
+def pct(part, whole) = whole.zero? ? "-" : format("%.0f%%", 100.0 * part / whole)
+
+attempts = ARGV.flat_map { Dir.glob(File.join(_1, "**", "result.json")) }.filter_map do |path|
+  result = read_json(path)
+  next unless result.dig("outcome", "scored")
+
+  dir = File.dirname(path)
+  trajectory = File.exist?(File.join(dir, "trajectory.json")) ? read_json(File.join(dir, "trajectory.json")) : {}
+  replies = Array(trajectory["steps"]).select { _1["source"] == "agent" }
+  patch = File.join(dir, "agent.patch")
+  {
+    model: result["model"].to_s.delete_prefix("gpustack/"),
+    app: result.dig("metadata", "app") || "-",
+    credit: result["credit"].to_f,
+    capped: replies.any? { _1.dig("extra", "finish_reason") == "length" },
+    limit: %w[step_limit_reached agent_timeout].include?(result.dig("outcome", "name")),
+    no_patch: !File.exist?(patch) || File.read(patch, encoding: "UTF-8").strip.empty?,
+    steps: result.dig("usage", "steps").to_i,
+    output_tokens: result.dig("usage", "output_tokens").to_i
+  }
+end
+abort "no scored attempts under #{ARGV.join(', ')}" if attempts.empty?
+
+rows = attempts.group_by { by_app ? [_1[:model], _1[:app]] : [_1[:model]] }.sort.map do |key, group|
+  n = group.size
+  [*key, n, format("%.2f", group.sum { _1[:credit] } / n), pct(group.count { _1[:credit].positive? }, n),
+   pct(group.count { _1[:capped] }, n), pct(group.count { _1[:limit] }, n), pct(group.count { _1[:no_patch] }, n),
+   median(group.map { _1[:steps] }).round, median(group.map { _1[:output_tokens] }).round]
+end
+header = [*(by_app ? %w[model app] : %w[model]), "attempts", "credit", "passed", "capped", "limit", "no patch", "steps", "out"]
+widths = header.each_index.map { |i| ([header] + rows).map { _1[i].to_s.size }.max }
+[header, *rows].each { |row| puts row.each_with_index.map { |cell, i| cell.to_s.ljust(widths[i]) }.join("  ").rstrip }

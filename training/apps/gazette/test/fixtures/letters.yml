@@ -1,0 +1,8 @@
+bus_timetable:
+  name: June Hart
+  email: june.hart@example.com
+  town: Petone
+  subject: The new bus timetable
+  body: The number 83 now leaves two minutes before the train arrives.
+  status: 0
+  created_at: 2026-09-12 21:00:00

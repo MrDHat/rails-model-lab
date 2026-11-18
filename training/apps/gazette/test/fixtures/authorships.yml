@@ -1,0 +1,32 @@
+harbour_bridge_eli:
+  article: harbour_bridge
+  author: eli
+  position: 0
+harbour_bridge_hana:
+  article: harbour_bridge
+  author: hana
+  position: 1
+council_budget_hana:
+  article: council_budget
+  author: hana
+  position: 0
+rugby_final_tom:
+  article: rugby_final
+  author: tom
+  position: 0
+port_profits_priya:
+  article: port_profits
+  author: priya
+  position: 0
+cafe_column_priya:
+  article: cafe_column
+  author: priya
+  position: 0
+ferry_strike_eli:
+  article: ferry_strike
+  author: eli
+  position: 0
+night_market_hana:
+  article: night_market
+  author: hana
+  position: 0

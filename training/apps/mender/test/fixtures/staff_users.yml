@@ -1,0 +1,18 @@
+rosa:
+  name: Rosa Pereira
+  email: rosa@mender.example
+  role: reception
+  access_code: "4417"
+
+helena:
+  name: Helena Duarte
+  email: helena@mender.example
+  role: manager
+  access_code: "9032"
+
+ana:
+  name: Ana Souza
+  email: ana@mender.example
+  role: practitioner
+  access_code: "1308"
+  practitioner: ana

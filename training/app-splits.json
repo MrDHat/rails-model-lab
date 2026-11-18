@@ -1,5 +1,5 @@
 {
-  "note": "Fixed 21/7/7 split of the app tasks, seeded 20261103: at most one task per area in each held-out set, at least one training task per area, three or four of each app per held-out set. Never train or tune on sealed tasks.",
+  "note": "Fixed 21/7/7 split of the app tasks, seeded 20261103: at most one task per area in each held-out set, at least one training task per area, three or four of each app per held-out set. Never train or tune on sealed tasks. The test split is tasks on apps no train task uses (mender, gazette), for checking that training carries over to an unfamiliar, larger codebase; never train or tune on it.",
   "train": [
     "api-token-auth",
     "checkout-form-object",
@@ -40,5 +40,39 @@
     "order-notes-encrypted",
     "pickup-time-comparison",
     "receipt-signed-link"
+  ],
+  "test": [
+    "appointment-moved-text",
+    "article-cdn-cache",
+    "article-slugs",
+    "article-status-validate",
+    "article-view-count",
+    "audit-staff-member",
+    "briefing-bulk-enqueue",
+    "byline-sentence",
+    "claim-submission-retry",
+    "clean-language-validator",
+    "clinical-notes-encrypted",
+    "comment-alert-discard",
+    "front-page-order",
+    "invoice-polling-etag",
+    "letters-email-names",
+    "manage-booking-link",
+    "never-booked-patients",
+    "no-double-booking",
+    "no-show-status",
+    "patient-appointment-counts",
+    "patient-language-messages",
+    "patient-phone-format",
+    "practitioner-buffer-time",
+    "practitioner-patients",
+    "reader-comments-async",
+    "reader-token-rotate",
+    "related-stories",
+    "schedule-page-queries",
+    "section-atom-feed",
+    "section-rename-touch",
+    "slot-search-rate-limit",
+    "wire-import-errors"
   ]
 }

@@ -1,0 +1,23 @@
+<% content_for :title, @practitioner.name %>
+<h1><%= @practitioner.name %></h1>
+<p><%= @practitioner.specialty %>, <%= @practitioner.location.name %></p>
+<% if current_staff_user.manager? %><%= link_to "Edit", edit_staff_practitioner_path(@practitioner) %><% end %>
+
+<h2>Treatments</h2>
+<p><%= @practitioner.treatments.map(&:name).sort.to_sentence %></p>
+
+<h2>Working hours</h2>
+<ul class="windows"><% @windows.each do |window| %><li><%= window.label %></li><% end %></ul>
+
+<h2>Upcoming</h2>
+<table class="upcoming">
+  <tbody>
+    <% @upcoming.each do |appointment| %>
+      <tr id="<%= dom_id(appointment) %>">
+        <td><%= link_to l(appointment.starts_at, format: :short), staff_appointment_path(appointment) %></td>
+        <td><%= appointment.patient.name %></td>
+        <td><%= appointment.treatment.name %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

@@ -1,0 +1,19 @@
+<%= form_with model: [:newsroom, article] do |f| %>
+  <% if article.errors.any? %>
+    <ul class="errors"><% article.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+  <% end %>
+  <p><%= f.label :headline %> <%= f.text_field :headline %></p>
+  <p><%= f.label :dek, "Standfirst" %> <%= f.text_field :dek %></p>
+  <p><%= f.label :section_id %> <%= f.select :section_id, Section.order(:name).map { [_1.name, _1.id] } %></p>
+  <p>
+    <%= f.label :author_ids, "Byline (in order)" %>
+    <%= f.select :author_ids, Author.order(:name).map { [_1.name, _1.id] }, { selected: article.authorships.sort_by(&:position).map(&:author_id) }, multiple: true %>
+  </p>
+  <p><%= f.label :tag_list, "Tags (comma separated)" %> <%= f.text_field :tag_list %></p>
+  <% if article.persisted? && (article.draft? || article.ready?) %>
+    <p><%= f.label :status %> <%= f.select :status, [["Draft", "draft"], ["Ready for the subs", "ready"]] %></p>
+  <% end %>
+  <p><%= f.label :comments_enabled %> <%= f.check_box :comments_enabled %></p>
+  <p><%= f.label :body %> <%= f.text_area :body, rows: 30 %></p>
+  <p><%= f.submit "Save" %></p>
+<% end %>

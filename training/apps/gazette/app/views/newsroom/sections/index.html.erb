@@ -1,0 +1,6 @@
+<h1>Sections</h1>
+<ul>
+  <% @sections.each do |section| %>
+    <li><%= link_to section.name, edit_newsroom_section_path(section) %> (<%= section.slug %>)</li>
+  <% end %>
+</ul>

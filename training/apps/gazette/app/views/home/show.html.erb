@@ -1,0 +1,13 @@
+<% if (lead = @front.lead) %>
+  <section class="lead">
+    <h1><%= link_to lead.headline, article_path(lead) %></h1>
+    <p class="dek"><%= lead.dek %></p>
+    <p class="meta"><%= lead.byline %></p>
+  </section>
+<% end %>
+<% @front.blocks.each do |block| %>
+  <section class="front-section" id="section-<%= block.section.slug %>">
+    <h2><%= link_to block.section.name, section_path(block.section) %></h2>
+    <%= render partial: "articles/teaser", collection: block.articles, as: :teaser %>
+  </section>
+<% end %>

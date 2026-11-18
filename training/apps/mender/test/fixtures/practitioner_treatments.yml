@@ -1,0 +1,7 @@
+ana_physio: { practitioner: ana, treatment: physio }
+ana_sports: { practitioner: ana, treatment: sports_massage }
+bruno_pilates: { practitioner: bruno, treatment: pilates }
+bruno_physio: { practitioner: bruno, treatment: physio }
+carla_physio: { practitioner: carla, treatment: physio }
+carla_massage: { practitioner: carla, treatment: massage }
+diego_massage: { practitioner: diego, treatment: massage }

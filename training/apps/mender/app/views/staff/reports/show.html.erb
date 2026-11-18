@@ -1,0 +1,22 @@
+<% content_for :title, "Report #{@report.month.strftime('%Y-%m')}" %>
+<h1><%= l(@report.month, format: "%B %Y") %><%= " – #{@location.name}" if @location %></h1>
+<h2>Appointments</h2>
+<table class="statuses">
+  <tbody>
+    <% @report.counts_by_status.each do |status, count| %>
+      <tr id="status_<%= status %>"><td><%= status.humanize %></td><td><%= count %></td></tr>
+    <% end %>
+  </tbody>
+</table>
+<p>Cancellation rate: <span id="cancellation_rate"><%= @report.cancellation_rate %>%</span></p>
+<h2>Completed by practitioner</h2>
+<table class="practitioners">
+  <tbody>
+    <% @report.completed_by_practitioner.each do |name, count| %>
+      <tr><td><%= name %></td><td><%= count %></td></tr>
+    <% end %>
+  </tbody>
+</table>
+<h2>Money</h2>
+<p>Invoiced: <span id="invoiced"><%= money(@report.invoiced_cents) %></span></p>
+<p>Received: <span id="revenue"><%= money(@report.revenue_cents) %></span></p>

@@ -1,0 +1,15 @@
+mere:
+  email: mere@example.com
+  display_name: Mere T
+  api_token: mere-token-7Hq2xk
+  briefing: true
+sam:
+  email: sam@example.com
+  display_name: Sam I
+  api_token: sam-token-p9Lw3e
+  briefing: true
+lou:
+  email: lou@example.com
+  display_name: Lou P
+  api_token: lou-token-Zr84nb
+  briefing: false

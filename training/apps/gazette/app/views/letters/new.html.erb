@@ -1,0 +1,13 @@
+<h1>Write to the editor</h1>
+<p>Letters should be under 300 words. We publish your name and town.</p>
+<%= form_with model: @letter do |f| %>
+  <% if @letter.errors.any? %>
+    <ul class="errors"><% @letter.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+  <% end %>
+  <p><%= f.label :name %> <%= f.text_field :name %></p>
+  <p><%= f.label :email %> <%= f.email_field :email %></p>
+  <p><%= f.label :town %> <%= f.text_field :town %></p>
+  <p><%= f.label :subject %> <%= f.text_field :subject %></p>
+  <p><%= f.label :body, "Your letter" %> <%= f.text_area :body, rows: 12 %></p>
+  <p><%= f.submit "Send letter" %></p>
+<% end %>

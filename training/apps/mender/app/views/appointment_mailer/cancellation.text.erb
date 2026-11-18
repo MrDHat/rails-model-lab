@@ -1,0 +1,3 @@
+<%= t(".greeting", name: @patient.first_name) %>
+
+<%= t(".body", treatment: @appointment.treatment.name, time: l(@appointment.starts_at, format: :long)) %>
