@@ -1,0 +1,30 @@
+physio:
+  name: Physiotherapy session
+  code: PHYS
+  duration_minutes: 45
+  price_cents: 18000
+
+sports_massage:
+  name: Sports massage
+  code: SPRT
+  duration_minutes: 30
+  price_cents: 12000
+
+pilates:
+  name: Clinical pilates
+  code: PILA
+  duration_minutes: 60
+  price_cents: 15000
+
+massage:
+  name: Relaxing massage
+  code: MASS
+  duration_minutes: 60
+  price_cents: 9000
+
+acupuncture:
+  name: Acupuncture
+  code: ACUP
+  duration_minutes: 30
+  price_cents: 10000
+  active: false

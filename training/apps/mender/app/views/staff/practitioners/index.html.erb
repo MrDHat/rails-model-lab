@@ -1,0 +1,13 @@
+<h1>Practitioners</h1>
+<table class="practitioners">
+  <tbody>
+    <% @practitioners.each do |practitioner| %>
+      <tr id="<%= dom_id(practitioner) %>">
+        <td><%= link_to practitioner.name, staff_practitioner_path(practitioner) %></td>
+        <td><%= practitioner.specialty %></td>
+        <td><%= practitioner.location.name %></td>
+        <td><%= practitioner.active? ? "active" : "inactive" %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

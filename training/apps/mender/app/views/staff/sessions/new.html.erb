@@ -1,0 +1,6 @@
+<h1>Staff sign in</h1>
+<%= form_with url: staff_session_path do |f| %>
+  <%= f.label :email %> <%= f.email_field :email %>
+  <%= f.label :access_code %> <%= f.password_field :access_code %>
+  <%= f.submit "Sign in" %>
+<% end %>

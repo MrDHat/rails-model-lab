@@ -1,0 +1,18 @@
+en:
+  time:
+    formats:
+      short: "%a %-d %b, %H:%M"
+      long: "%A %-d %B %Y at %H:%M"
+  sms:
+    reminder: "Hi %{name}, a reminder of your appointment with %{practitioner} on %{time} at Mender %{location}. Reply C to cancel."
+    waitlist_offer: "Hi %{name}, a slot with %{practitioner} has opened on %{time}. Book it in the Mender app before someone else does."
+  appointment_mailer:
+    confirmation:
+      subject: "Your Mender appointment on %{time}"
+      greeting: "Hello %{name},"
+      body: "Your %{treatment} with %{practitioner} is booked for %{time} at Mender %{location}, %{address}."
+      manage: "To see or cancel your booking, open:"
+    cancellation:
+      subject: "Cancelled: your Mender appointment on %{time}"
+      greeting: "Hello %{name},"
+      body: "Your %{treatment} on %{time} has been cancelled."

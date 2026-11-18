@@ -1,0 +1,53 @@
+<% content_for :title, "Appointment ##{@appointment.id}" %>
+<h1><%= @appointment.treatment.name %> with <%= @appointment.practitioner.name %></h1>
+<dl>
+  <dt>Patient</dt><dd><%= link_to @appointment.patient.name, staff_patient_path(@appointment.patient) %></dd>
+  <dt>When</dt><dd><%= l(@appointment.starts_at, format: :long) %> – <%= clinic_time(@appointment.ends_at) %></dd>
+  <dt>Where</dt><dd><%= @appointment.location.name %>, <%= @appointment.room&.name || "no room assigned" %></dd>
+  <dt>Status</dt><dd id="status"><%= @appointment.status_name.humanize %></dd>
+  <dt>Booked via</dt><dd><%= @appointment.source.humanize %></dd>
+  <% if @appointment.cancelled? %>
+    <dt>Cancelled</dt><dd><%= l(@appointment.cancelled_at, format: :short) %>: <%= @appointment.cancellation_reason %></dd>
+  <% end %>
+  <% if @appointment.notes.present? %><dt>Booking notes</dt><dd><%= @appointment.notes %></dd><% end %>
+</dl>
+
+<% if @appointment.booked? %>
+  <%= button_to "Check in", staff_appointment_path(@appointment, event: "check_in"), method: :patch %>
+  <% if @appointment.starts_at <= Time.current %>
+    <%= button_to "Mark no-show", staff_appointment_path(@appointment, event: "no_show"), method: :patch %>
+  <% end %>
+  <%= form_with url: staff_appointment_path(@appointment), method: :patch do |f| %>
+    <%= f.hidden_field :event, value: "cancel" %>
+    <%= f.text_field :reason, placeholder: "Reason" %>
+    <%= f.submit "Cancel appointment" %>
+  <% end %>
+  <%= form_with url: staff_appointment_path(@appointment), method: :patch do |f| %>
+    <%= f.datetime_local_field :starts_at, value: @appointment.starts_at.strftime("%Y-%m-%dT%H:%M") %>
+    <%= f.submit "Move" %>
+  <% end %>
+<% elsif @appointment.checked_in? %>
+  <%= button_to "Complete", staff_appointment_path(@appointment, event: "complete"), method: :patch %>
+<% elsif @appointment.completed? && @appointment.invoice.nil? %>
+  <%= button_to "Create invoice", staff_invoices_path(appointment_id: @appointment.id) %>
+<% end %>
+
+<h2>Clinical note</h2>
+<% note = @appointment.clinical_note %>
+<% if note&.signed? %>
+  <p class="note"><%= simple_format(note.body) %></p>
+  <p>Signed <%= l(note.signed_at, format: :short) %></p>
+<% elsif note %>
+  <%= form_with url: staff_appointment_clinical_note_path(@appointment), method: :patch do |f| %>
+    <%= f.text_area :body, value: note.body, rows: 8 %>
+    <%= f.submit "Save" %>
+  <% end %>
+  <%= button_to "Sign", sign_staff_appointment_clinical_note_path(@appointment) %>
+<% elsif @appointment.checked_in? || @appointment.completed? %>
+  <%= form_with url: staff_appointment_clinical_note_path(@appointment) do |f| %>
+    <%= f.text_area :body, rows: 8 %>
+    <%= f.submit "Save" %>
+  <% end %>
+<% else %>
+  <p>No note.</p>
+<% end %>

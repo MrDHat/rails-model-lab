@@ -1,0 +1,28 @@
+ana:
+  location: paulista
+  name: Ana Souza
+  email: ana@mender.example
+  specialty: Sports physiotherapy
+  settings: {}
+
+bruno:
+  location: paulista
+  name: Bruno Lima
+  email: bruno@mender.example
+  specialty: Clinical pilates
+  settings: {}
+
+carla:
+  location: pinheiros
+  name: Carla Mendes
+  email: carla@mender.example
+  specialty: Physiotherapy
+  settings: {}
+
+diego:
+  location: pinheiros
+  name: Diego Ramos
+  email: diego@mender.example
+  specialty: Massage
+  active: false
+  settings: {}

@@ -1,0 +1,12 @@
+<h1>Edit <%= @practitioner.name %></h1>
+<% if @practitioner.errors.any? %>
+  <ul class="errors"><% @practitioner.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+<% end %>
+<%= form_with model: @practitioner, url: staff_practitioner_path(@practitioner) do |f| %>
+  <%= f.label :name %> <%= f.text_field :name %>
+  <%= f.label :specialty %> <%= f.text_field :specialty %>
+  <%= f.label :location_id %> <%= f.collection_select :location_id, Location.order(:name), :id, :name %>
+  <%= f.label :active %> <%= f.check_box :active %>
+  <%= f.collection_check_boxes :treatment_ids, Treatment.order(:name), :id, :name %>
+  <%= f.submit "Save" %>
+<% end %>

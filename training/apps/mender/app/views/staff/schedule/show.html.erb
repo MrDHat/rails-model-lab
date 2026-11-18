@@ -1,0 +1,33 @@
+<% content_for :title, "#{@location.name} – #{l(@date, format: :long)}" %>
+<h1><%= @location.name %>, <%= l(@date, format: :long) %></h1>
+
+<%= form_with url: staff_schedule_path, method: :get do |f| %>
+  <%= f.select :location_id, @locations.map { [_1.name, _1.id] }, selected: @location.id %>
+  <%= f.date_field :date, value: @date %>
+  <%= f.submit "Show" %>
+<% end %>
+<p>
+  <%= link_to "← Previous day", staff_schedule_path(location_id: @location.id, date: @date - 1) %>
+  <%= link_to "Next day →", staff_schedule_path(location_id: @location.id, date: @date + 1) %>
+</p>
+
+<table class="schedule">
+  <thead>
+    <tr><th>Time</th><th>Patient</th><th>Practitioner</th><th>Treatment</th><th>Room</th><th>Status</th><th>Note</th><th>Invoice</th></tr>
+  </thead>
+  <tbody>
+    <% @schedule.appointments.each do |appointment| %>
+      <tr id="<%= dom_id(appointment) %>" class="<%= appointment.status_name %>">
+        <td><%= clinic_time(appointment.starts_at) %>–<%= clinic_time(appointment.ends_at) %></td>
+        <td><%= link_to appointment.patient.name, staff_patient_path(appointment.patient) %></td>
+        <td><%= appointment.practitioner.name %></td>
+        <td><%= appointment.treatment.name %></td>
+        <td><%= appointment.room&.name || "–" %></td>
+        <td><%= link_to appointment.status_name.humanize, staff_appointment_path(appointment) %></td>
+        <td><%= appointment.clinical_note&.signed? ? "signed" : (appointment.clinical_note ? "draft" : "–") %></td>
+        <td><%= appointment.invoice ? link_to(appointment.invoice.number, staff_invoice_path(appointment.invoice)) : "–" %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<p><%= pluralize(@schedule.appointments.size, "appointment") %></p>

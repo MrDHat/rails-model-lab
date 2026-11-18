@@ -1,0 +1,43 @@
+<% content_for :title, "Invoice #{@invoice.number}" %>
+<h1>Invoice <%= @invoice.number %> (<%= @invoice.status_name %>)</h1>
+<p>Patient: <%= link_to @invoice.patient.name, staff_patient_path(@invoice.patient) %></p>
+<table class="lines">
+  <tbody>
+    <% @invoice.invoice_lines.each do |line| %>
+      <tr><td><%= line.description %></td><td><%= line.quantity %></td><td><%= money(line.amount_cents) %></td></tr>
+    <% end %>
+  </tbody>
+</table>
+<dl>
+  <dt>Total</dt><dd id="total"><%= money(@invoice.total_cents) %></dd>
+  <dt>Insurer pays</dt><dd><%= money(@invoice.insurer_share_cents) %></dd>
+  <dt>Patient pays</dt><dd><%= money(@invoice.patient_share_cents) %></dd>
+  <dt>Balance</dt><dd id="balance"><%= money(@invoice.balance_cents) %></dd>
+</dl>
+<% if (claim = @invoice.insurance_claim) %>
+  <p>Claim to <%= claim.insurer.name %>: <%= claim.status_name %> <%= claim.external_ref %></p>
+<% end %>
+
+<h2>Payments</h2>
+<ul>
+  <% @invoice.payments.order(:received_at).each do |payment| %>
+    <li><%= l(payment.received_at, format: :short) %>: <%= money(payment.amount_cents) %> by <%= payment.method %> <%= payment.reference %></li>
+  <% end %>
+</ul>
+
+<% if @invoice.draft? %>
+  <%= button_to "Issue", issue_staff_invoice_path(@invoice) %>
+<% elsif @invoice.issued? %>
+  <%= form_with url: pay_staff_invoice_path(@invoice) do |f| %>
+    <%= f.number_field :amount_cents, value: @invoice.balance_cents %>
+    <%= f.select :method, Payment::METHODS %>
+    <%= f.text_field :reference, placeholder: "Reference" %>
+    <%= f.submit "Record payment" %>
+  <% end %>
+<% end %>
+<% unless @invoice.paid? || @invoice.void? %>
+  <%= form_with url: void_staff_invoice_path(@invoice) do |f| %>
+    <%= f.text_field :reason, placeholder: "Reason" %>
+    <%= f.submit "Void" %>
+  <% end %>
+<% end %>

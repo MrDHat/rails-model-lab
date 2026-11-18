@@ -1,0 +1,6 @@
+lucia_pix:
+  invoice: lucia_last_week
+  amount_cents: 18000
+  method: pix
+  reference: E2E-0001
+  received_at: 2026-06-08 14:00:00

@@ -1,0 +1,33 @@
+<% content_for :title, @patient.name %>
+<h1><%= @patient.name %></h1>
+<dl>
+  <dt>Email</dt><dd><%= @patient.email %></dd>
+  <dt>Phone</dt><dd><%= PhoneNumber.display(@patient.phone) %></dd>
+  <dt>Born</dt><dd><%= @patient.birth_date ? l(@patient.birth_date) : "–" %></dd>
+  <dt>Language</dt><dd><%= @patient.locale %></dd>
+  <% if (policy = @patient.current_policy) %>
+    <dt>Insurance</dt><dd><%= policy.insurer.name %> <%= policy.member_number %>, <%= policy.coverage_percent %>% until <%= l(policy.valid_until) %></dd>
+  <% end %>
+</dl>
+<%= link_to "Edit", edit_staff_patient_path(@patient) %>
+
+<h2>Appointments</h2>
+<table class="appointments">
+  <tbody>
+    <% @appointments.each do |appointment| %>
+      <tr id="<%= dom_id(appointment) %>">
+        <td><%= link_to l(appointment.starts_at, format: :short), staff_appointment_path(appointment) %></td>
+        <td><%= appointment.treatment.name %></td>
+        <td><%= appointment.practitioner.name %></td>
+        <td><%= appointment.status_name.humanize %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<h2>Invoices</h2>
+<ul>
+  <% @invoices.each do |invoice| %>
+    <li><%= link_to invoice.number, staff_invoice_path(invoice) %>: <%= money(invoice.total_cents) %>, <%= invoice.status_name %></li>
+  <% end %>
+</ul>

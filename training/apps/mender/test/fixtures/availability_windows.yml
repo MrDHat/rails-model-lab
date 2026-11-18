@@ -1,0 +1,7 @@
+# Clinic time. Monday is weekday 1.
+ana_monday_morning: { practitioner: ana, weekday: 1, starts_at_minute: 480, ends_at_minute: 720 }
+ana_monday_afternoon: { practitioner: ana, weekday: 1, starts_at_minute: 840, ends_at_minute: 1080 }
+ana_wednesday: { practitioner: ana, weekday: 3, starts_at_minute: 480, ends_at_minute: 720 }
+bruno_monday: { practitioner: bruno, weekday: 1, starts_at_minute: 540, ends_at_minute: 1020 }
+bruno_tuesday: { practitioner: bruno, weekday: 2, starts_at_minute: 540, ends_at_minute: 1020 }
+carla_monday: { practitioner: carla, weekday: 1, starts_at_minute: 600, ends_at_minute: 960 }

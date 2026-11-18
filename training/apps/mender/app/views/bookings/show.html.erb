@@ -1,0 +1,8 @@
+<% content_for :title, "Your appointment" %>
+<h1>Your appointment</h1>
+<p><%= @appointment.treatment.name %> with <%= @appointment.practitioner.name %></p>
+<p><%= l(@appointment.starts_at, format: :long) %>, Mender <%= @appointment.location.name %>, <%= @appointment.location.address %></p>
+<p id="status"><%= @appointment.status_name.humanize %></p>
+<% if @appointment.booked? %>
+  <%= button_to "Cancel this appointment", booking_path(@appointment), method: :delete %>
+<% end %>

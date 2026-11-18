@@ -1,0 +1,62 @@
+# Stored in UTC; the clinics are three hours behind (09:00 in São Paulo is 12:00 UTC).
+julia_monday:
+  patient: julia
+  practitioner: ana
+  treatment: physio
+  room: paulista_1
+  starts_at: 2026-06-15 12:00:00
+  ends_at: 2026-06-15 12:45:00
+  status: 0
+  source: app
+
+marcos_monday:
+  patient: marcos
+  practitioner: ana
+  treatment: sports_massage
+  room: paulista_1
+  starts_at: 2026-06-15 14:00:00
+  ends_at: 2026-06-15 14:30:00
+  status: 0
+  source: phone
+
+tom_monday:
+  patient: tom
+  practitioner: bruno
+  treatment: pilates
+  room: paulista_2
+  starts_at: 2026-06-15 13:00:00
+  ends_at: 2026-06-15 14:00:00
+  status: 0
+  source: app
+
+julia_last_week:
+  patient: julia
+  practitioner: ana
+  treatment: physio
+  room: paulista_1
+  starts_at: 2026-06-08 12:00:00
+  ends_at: 2026-06-08 12:45:00
+  status: 2
+  source: app
+
+lucia_last_week:
+  patient: lucia
+  practitioner: carla
+  treatment: physio
+  room: pinheiros_1
+  starts_at: 2026-06-08 13:00:00
+  ends_at: 2026-06-08 13:45:00
+  status: 2
+  source: phone
+
+marcos_cancelled:
+  patient: marcos
+  practitioner: ana
+  treatment: physio
+  room: paulista_1
+  starts_at: 2026-06-10 12:00:00
+  ends_at: 2026-06-10 12:45:00
+  status: 3
+  source: app
+  cancelled_at: 2026-06-09 18:00:00
+  cancellation_reason: Cancelled in the app

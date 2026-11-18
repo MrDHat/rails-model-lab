@@ -1,0 +1,9 @@
+paulista:
+  name: Paulista
+  address: Av. Paulista 1000, São Paulo
+  phone: "+551130000001"
+
+pinheiros:
+  name: Pinheiros
+  address: Rua dos Pinheiros 250, São Paulo
+  phone: "+551130000002"

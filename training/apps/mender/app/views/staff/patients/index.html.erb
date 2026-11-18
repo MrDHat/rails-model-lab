@@ -1,0 +1,23 @@
+<% content_for :title, "Patients" %>
+<h1>Patients</h1>
+<%= form_with url: staff_patients_path, method: :get do |f| %>
+  <%= f.search_field :q, value: params[:q], placeholder: "Name, email or phone" %>
+  <%= f.submit "Search" %>
+<% end %>
+<table class="patients">
+  <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Language</th></tr></thead>
+  <tbody>
+    <% @patients.each do |patient| %>
+      <tr id="<%= dom_id(patient) %>">
+        <td><%= link_to patient.name, staff_patient_path(patient) %></td>
+        <td><%= patient.email %></td>
+        <td><%= PhoneNumber.display(patient.phone) %></td>
+        <td><%= patient.locale %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<p>
+  <% if @page > 1 %><%= link_to "← Previous", staff_patients_path(q: params[:q], page: @page - 1) %><% end %>
+  <% if @patients.size == Staff::PatientsController::PER_PAGE %><%= link_to "Next →", staff_patients_path(q: params[:q], page: @page + 1) %><% end %>
+</p>

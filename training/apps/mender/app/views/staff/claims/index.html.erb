@@ -1,0 +1,14 @@
+<h1>Insurance claims</h1>
+<table class="claims">
+  <tbody>
+    <% @claims.each do |claim| %>
+      <tr id="<%= dom_id(claim) %>">
+        <td><%= link_to claim.invoice.number, staff_invoice_path(claim.invoice) %></td>
+        <td><%= claim.insurer.name %></td>
+        <td><%= money(claim.amount_cents) %></td>
+        <td><%= claim.status_name %></td>
+        <td><%= claim.external_ref %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

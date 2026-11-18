@@ -1,0 +1,13 @@
+<h1>Book an appointment</h1>
+<% if @appointment.errors.any? %>
+  <ul class="errors"><% @appointment.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+<% end %>
+<%= form_with model: @appointment, url: staff_appointments_path do |f| %>
+  <%= f.label :patient_id %> <%= f.number_field :patient_id %>
+  <%= f.label :practitioner_id %> <%= f.collection_select :practitioner_id, Practitioner.active.order(:name), :id, :name %>
+  <%= f.label :treatment_id %> <%= f.collection_select :treatment_id, Treatment.active.order(:name), :id, :name %>
+  <%= f.label :starts_at %> <%= f.datetime_local_field :starts_at %>
+  <%= f.label :source %> <%= f.select :source, Appointment::SOURCES %>
+  <%= f.label :notes %> <%= f.text_area :notes %>
+  <%= f.submit "Book" %>
+<% end %>
