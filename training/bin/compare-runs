@@ -15,21 +15,26 @@
 # whole range is above 0, "worse" when it is all below 0, otherwise "no clear
 # difference".
 #
+# Every task scored in either run must be scored in both, and with --expect N
+# there must be N such tasks; otherwise the verdict is "incomplete", because the
+# missing tasks are often the ones a model failed on.
+#
 # With --groups (default training/test-targets.json, when present), tasks in its
 # "transfer" map and the other targeted tasks ("novel") get their own lines.
 #
-#   ruby training/bin/compare-runs [--resamples N] [--seed N] [--groups FILE] RUNS_A RUNS_B
+#   ruby training/bin/compare-runs [--expect N] [--resamples N] [--seed N] [--groups FILE] RUNS_A RUNS_B
 require "json"
 require "optparse"
 
 options = { resamples: 10_000, seed: 20_261_125, groups: File.expand_path("../test-targets.json", __dir__) }
 OptionParser.new do |o|
-  o.banner = "usage: compare-runs [--resamples N] [--seed N] [--groups FILE] RUNS_A RUNS_B"
+  o.banner = "usage: compare-runs [--expect N] [--resamples N] [--seed N] [--groups FILE] RUNS_A RUNS_B"
+  o.on("--expect N", Integer) { options[:expect] = _1 }
   o.on("--resamples N", Integer) { options[:resamples] = _1 }
   o.on("--seed N", Integer) { options[:seed] = _1 }
   o.on("--groups FILE") { options[:groups] = _1 }
 end.parse!
-abort "usage: compare-runs [--resamples N] [--seed N] [--groups FILE] RUNS_A RUNS_B" unless ARGV.size == 2
+abort "usage: compare-runs [--expect N] [--resamples N] [--seed N] [--groups FILE] RUNS_A RUNS_B" unless ARGV.size == 2
 
 def credits_by_task(dir)
   Dir.glob(File.join(dir, "**", "result.json")).each_with_object(Hash.new { |h, k| h[k] = [] }) do |path, by_task|
@@ -57,8 +62,8 @@ b = credits_by_task(b_dir)
 shared = (a.keys & b.keys).sort
 abort "no task was scored in both runs" if shared.empty?
 
-only = (a.keys | b.keys) - shared
-warn "left out, scored in only one run: #{only.sort.join(', ')}" if only.any?
+expected = [(a.keys | b.keys).size, options[:expect].to_i].max
+incomplete = shared.size < expected
 
 groups = { "all" => shared }
 if options[:groups] && File.exist?(options[:groups])
@@ -75,6 +80,11 @@ name = ->(dir) { File.basename(File.expand_path(dir)) }
 puts "A = #{name[a_dir]}"
 puts "B = #{name[b_dir]}"
 puts "paired bootstrap, #{options[:resamples]} resamples, seed #{options[:seed]}"
+if incomplete
+  puts "INCOMPLETE: #{shared.size} of #{expected} tasks scored in both runs, so no verdict."
+  puts "  scored only in A: #{(a.keys - b.keys).sort.join(', ')}" if (a.keys - b.keys).any?
+  puts "  scored only in B: #{(b.keys - a.keys).sort.join(', ')}" if (b.keys - a.keys).any?
+end
 puts
 header = %w[tasks group attempts\ A attempts\ B score\ A score\ B B-A 95%\ range verdict]
 rows = groups.map do |group, tasks|
@@ -87,7 +97,8 @@ rows = groups.map do |group, tasks|
   end.sort
   low = percentile(diffs, 0.025)
   high = percentile(diffs, 0.975)
-  verdict = if low.positive? then "better"
+  verdict = if incomplete then "incomplete (#{shared.size} of #{expected} tasks)"
+            elsif low.positive? then "better"
             elsif high.negative? then "worse"
             else "no clear difference"
             end

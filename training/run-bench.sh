@@ -76,7 +76,7 @@ case "$stage" in
     ruby training/bin/attempt-health --by-app "$runs" | tee "$runs/health.txt"
     base="runs/bench-${BASE_QWEN:-qwen3.5-27b}-$stage"
     if [ "$runs" != "$base" ] && [ -d "$base" ]; then
-      ruby training/bin/compare-runs "$base" "$runs" | tee "$runs/compare.txt"
+      ruby training/bin/compare-runs --expect "$(( ${#f[@]} / 2 ))" "$base" "$runs" | tee "$runs/compare.txt"
     fi
     ;;
   *) echo "unknown stage $stage" >&2; exit 2 ;;
