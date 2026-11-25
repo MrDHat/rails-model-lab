@@ -11,6 +11,10 @@
 #   QWEN=qwen3.5-27b-sft bash training/run-bench.sh validation   # validation tasks of both sets, 3 attempts each
 #
 # Like run-baseline.sh, each pass reruns only infrastructure failures.
+# Every model stage writes report.txt, report-by-task.txt and health.txt; when
+# the base model (BASE_QWEN, default qwen3.5-27b) has a run of the same stage,
+# compare.txt holds the paired comparison with it (bin/compare-runs). The test
+# stage refuses to start if bin/check-test-overlap fails. Rules: TEST-RULES.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source baseline/settings.sh
@@ -57,7 +61,8 @@ case "$stage" in
     mkdir -p "$runs"
     case "$stage" in
       apps) mapfile -t f < <(task_flags "${apps[@]}") ;;
-      test) mapfile -t f < <(task_flags "${test_tasks[@]}") ;;
+      test) ruby training/bin/check-test-overlap >/dev/null || { ruby training/bin/check-test-overlap; exit 1; }
+            mapfile -t f < <(task_flags "${test_tasks[@]}") ;;
       train) mapfile -t f < <(task_flags "${train[@]}"); ATTEMPTS="${ATTEMPTS:-6}" ;;
       validation) mapfile -t f < <(task_flags "${validation[@]}") ;;
       *) mapfile -t f < <(task_flags "${heldout[@]}") ;;
@@ -69,6 +74,10 @@ case "$stage" in
     bundle exec lemans report "$runs" --skip-invalid -A model-task | tee "$runs/report-by-task.txt"
     bundle exec lemans report "$runs" --skip-invalid -A model | tee "$runs/report.txt"
     ruby training/bin/attempt-health --by-app "$runs" | tee "$runs/health.txt"
+    base="runs/bench-${BASE_QWEN:-qwen3.5-27b}-$stage"
+    if [ "$runs" != "$base" ] && [ -d "$base" ]; then
+      ruby training/bin/compare-runs --expect "$(( ${#f[@]} / 2 ))" "$base" "$runs" | tee "$runs/compare.txt"
+    fi
     ;;
   *) echo "unknown stage $stage" >&2; exit 2 ;;
 esac

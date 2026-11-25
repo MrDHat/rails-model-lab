@@ -1,0 +1,190 @@
+{
+  "note": "The Rails API each test-split task is about, as Ruby regexes. bin/check-test-overlap fails if one shows up in anything the model trains on, unless the task is listed under transfer with the train tasks that teach that API; bin/check-test-overlap --write fills that list in.",
+  "targets": {
+    "appointment-moved-text": [
+      "\\bafter_update_commit\\b",
+      "\\bafter_save_commit\\b",
+      "\\bsaved_change_to_\\w+",
+      "\\b\\w+_previously_changed\\?",
+      "\\b\\w+_before_last_save\\b",
+      "\\bsaved_changes\\b",
+      "\\bprevious_changes\\b"
+    ],
+    "audit-staff-member": [
+      "\\bCurrentAttributes\\b"
+    ],
+    "claim-submission-retry": [
+      "\\bretry_on\\b"
+    ],
+    "clinical-notes-encrypted": [
+      "\\bencrypts\\b"
+    ],
+    "invoice-polling-etag": [
+      "\\bfresh_when\\b",
+      "\\bstale\\?"
+    ],
+    "manage-booking-link": [
+      "\\bgenerates_token_for\\b",
+      "\\bfind_by_token_for\\b"
+    ],
+    "never-booked-patients": [
+      "\\bwhere\\.missing\\b",
+      "\\.missing\\("
+    ],
+    "no-double-booking": [
+      "uniqueness:\\s*\\{\\s*scope:"
+    ],
+    "no-show-status": [
+      "^\\s*enum\\b"
+    ],
+    "patient-appointment-counts": [
+      "\\bcounter_cache\\b"
+    ],
+    "patient-language-messages": [
+      "\\bwith_locale\\b"
+    ],
+    "patient-phone-format": [
+      "\\bnormalizes\\b"
+    ],
+    "practitioner-buffer-time": [
+      "\\bstore_accessor\\b"
+    ],
+    "practitioner-patients": [
+      "\\bthrough:\\s*:"
+    ],
+    "schedule-page-queries": [
+      "\\.includes\\(",
+      "\\.preload\\(",
+      "\\.eager_load\\("
+    ],
+    "slot-search-rate-limit": [
+      "\\brate_limit\\b"
+    ],
+    "article-cdn-cache": [
+      "\\bexpires_in\\b"
+    ],
+    "article-slugs": [
+      "\\bparameterize\\b"
+    ],
+    "article-status-validate": [
+      "\\benum\\b.*\\bvalidate:\\s*true"
+    ],
+    "article-view-count": [
+      "\\bincrement!",
+      "\\bupdate_counters\\b",
+      "\\bincrement_counter\\b"
+    ],
+    "briefing-bulk-enqueue": [
+      "\\bperform_all_later\\b"
+    ],
+    "byline-sentence": [
+      "\\bto_sentence\\b"
+    ],
+    "clean-language-validator": [
+      "\\bEachValidator\\b"
+    ],
+    "comment-alert-discard": [
+      "\\bdiscard_on\\b"
+    ],
+    "front-page-order": [
+      "\\bin_order_of\\b"
+    ],
+    "letters-email-names": [
+      "\\bemail_address_with_name\\b"
+    ],
+    "reader-comments-async": [
+      "\\bdestroy_async\\b"
+    ],
+    "reader-token-rotate": [
+      "\\bhas_secure_token\\b",
+      "\\bregenerate_\\w+_token\\b"
+    ],
+    "related-stories": [
+      "\\.excluding\\(",
+      "\\.without\\("
+    ],
+    "section-atom-feed": [
+      "\\batom_feed\\b"
+    ],
+    "section-rename-touch": [
+      "\\btouch_all\\b"
+    ],
+    "wire-import-errors": [
+      "\\bRails\\.error\\.(handle|record|report)\\b"
+    ]
+  },
+  "transfer": {
+    "audit-staff-member": [
+      "app:toolshed",
+      "order-api-client-current",
+      "request-current-user"
+    ],
+    "claim-submission-retry": [
+      "app:crumb",
+      "app:toolshed",
+      "cleanup-job-discard",
+      "payment-job-give-up"
+    ],
+    "clinical-notes-encrypted": [
+      "patient-encrypted-field"
+    ],
+    "manage-booking-link": [
+      "magic-link-sign-in",
+      "password-reset-token"
+    ],
+    "never-booked-patients": [
+      "unassigned-tickets"
+    ],
+    "no-double-booking": [
+      "project-slug-uniqueness",
+      "tool-name-unique-per-category"
+    ],
+    "no-show-status": [
+      "payment-status-enum",
+      "shirt-size-codes",
+      "task-state-enum",
+      "tool-condition-enum"
+    ],
+    "patient-appointment-counts": [
+      "tool-loan-counts"
+    ],
+    "patient-phone-format": [
+      "contact-email-normalization",
+      "tool-serial-normalizes"
+    ],
+    "practitioner-buffer-time": [
+      "user-settings-store"
+    ],
+    "schedule-page-queries": [
+      "app:toolshed",
+      "book-list-preload",
+      "orders-export-batches",
+      "overdue-summary-bulk",
+      "sales-report-group"
+    ],
+    "article-cdn-cache": [
+      "magic-link-sign-in",
+      "password-reset-token",
+      "products-json-cache"
+    ],
+    "article-status-validate": [
+      "payment-status-enum",
+      "tool-condition-enum"
+    ],
+    "briefing-bulk-enqueue": [
+      "bulk-enqueue-emails",
+      "overdue-summary-bulk"
+    ],
+    "byline-sentence": [
+      "app:toolshed",
+      "names-to-sentence"
+    ],
+    "comment-alert-discard": [
+      "app:crumb",
+      "app:toolshed",
+      "cleanup-job-discard",
+      "payment-job-give-up"
+    ]
+  },
+  "frozen": "9c1ecaa88351383153d7a1925c675a3b9a9287b4c7124af28254c4d590d8dacd"
+}

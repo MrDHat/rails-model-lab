@@ -1,0 +1,136 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Checks that the test split measures what we say it measures.
+#
+# 1. Groups. The Rails API each test task is about is listed in
+#    training/test-targets.json. A task is "novel" if that API appears nowhere in
+#    training material, and "transfer" if a train task teaches it (the test then
+#    asks for the same API in an unfamiliar, larger app). The file declares each
+#    task's group; this fails when the declaration and the data disagree, so a
+#    new train task can't quietly turn a novel task into a transfer one.
+# 2. Near-duplicates. No test request may share long word runs with a train
+#    request (8-word shingles, Jaccard similarity above 0.2).
+#
+# Training material is every file of the train-split tasks of both task sets
+# (request, starter, answers, tests, attacks) and the source of every app a
+# train-split app task uses. Validation and sealed tasks aren't trained on.
+#
+# 3. Frozen. The test tasks and their apps must match the fingerprint in
+#    test-targets.json, so they can't change after a model has been run on them
+#    without a line in the looks log of training/TEST-RULES.md.
+#
+#   ruby training/bin/check-test-overlap [--verbose] [--write] [--freeze]
+#
+# --write rewrites the "transfer" map in test-targets.json from the data.
+# --freeze records the test split's current fingerprint.
+require "digest"
+require "json"
+require "set"
+
+ROOT = File.expand_path("../..", __dir__)
+TARGETS = File.join(ROOT, "training/test-targets.json")
+verbose = ARGV.delete("--verbose")
+write = ARGV.delete("--write")
+freeze = ARGV.delete("--freeze")
+
+def read_json(path) = JSON.parse(File.read(File.join(ROOT, path)))
+
+def text_files_under(dir)
+  Dir.glob(File.join(ROOT, dir, "**", "*")).select { File.file?(_1) && !File.binread(_1, 4096).include?("\0") }
+end
+
+def read_text(path) = File.read(path, encoding: "UTF-8", invalid: :replace)
+
+def shingles(text, size = 8)
+  words = text.downcase.scan(/[a-z0-9_]+/)
+  words.each_cons(size).map { _1.join(" ") }.to_set
+end
+
+config = JSON.parse(File.read(TARGETS))
+single = read_json("training/splits.json")
+apps = read_json("training/app-splits.json")
+
+app_of = ->(task) { read_json("training/app-tasks/#{task}/task.json")["app"] }
+train_apps = apps["train"].map(&app_of).uniq
+test_apps = apps["test"].map(&app_of).uniq
+abort "train and test share apps: #{(train_apps & test_apps).join(', ')}" if (train_apps & test_apps).any?
+
+sources = single["train"].map { ["training/tasks/#{_1}", _1] } +
+          apps["train"].map { ["training/app-tasks/#{_1}", _1] } +
+          train_apps.map { ["training/apps/#{_1}", "app:#{_1}"] }
+texts = sources.flat_map { |dir, owner| text_files_under(dir).map { [owner, _1.delete_prefix("#{ROOT}/"), read_text(_1)] } }
+
+failed = false
+(apps["test"] - config["targets"].keys).each { puts "#{_1}: no targets in test-targets.json"; failed = true }
+
+found = {}
+config["targets"].each do |task, patterns|
+  regexes = patterns.map { Regexp.new(_1) }
+  # A pattern that misses the task's own reference answer is wrong, and would make any task look novel.
+  reference = text_files_under("training/app-tasks/#{task}/reference").map { read_text(_1) }
+  unless reference.any? { |text| regexes.any? { text.match?(_1) } }
+    failed = true
+    puts "#{task}: no target pattern matches its own reference answer"
+  end
+  hits =texts.select { |_owner, _path, text| regexes.any? { text.match?(_1) } }
+  found[task] = hits.map(&:first).uniq.sort
+  declared = config["transfer"].key?(task) ? "transfer" : "novel"
+  actual = hits.empty? ? "novel" : "transfer"
+  line = "#{task}: #{actual}"
+  line += " (#{found[task].join(', ')})" if actual == "transfer"
+  if declared != actual
+    failed = true
+    line += "  <- declared #{declared}"
+  end
+  puts line
+  hits.each { puts "    #{_2}" } if verbose
+end
+
+train_requests = single["train"].map { "training/tasks/#{_1}/request.md" } + apps["train"].map { "training/app-tasks/#{_1}/request.md" }
+train_shingles = train_requests.to_h { [_1, shingles(read_text(File.join(ROOT, _1)))] }
+apps["test"].each do |task|
+  mine = shingles(read_text(File.join(ROOT, "training/app-tasks/#{task}/request.md")))
+  next if mine.empty?
+
+  train_shingles.each do |path, theirs|
+    next if theirs.empty?
+
+    similarity = (mine & theirs).size.to_f / (mine | theirs).size
+    next unless similarity > 0.2
+
+    failed = true
+    puts "#{task}: request is #{(similarity * 100).round}% the same as #{path}"
+  end
+end
+
+test_dirs = apps["test"].map { "training/app-tasks/#{_1}" } + test_apps.map { "training/apps/#{_1}" }
+fingerprint = Digest::SHA256.new
+# Tracked files only: running an app leaves ignored log/, tmp/ and storage/ behind.
+tracked = IO.popen(["git", "-C", ROOT, "ls-files", "-z", "--", *test_dirs], &:read).split("\0")
+abort "git ls-files found no test files" if tracked.empty?
+tracked.sort.each do |path|
+  fingerprint << path << "\0" << Digest::SHA256.file(File.join(ROOT, path)).hexdigest << "\n"
+end
+fingerprint = fingerprint.hexdigest
+if freeze
+  config["frozen"] = fingerprint
+  File.write(TARGETS, JSON.pretty_generate(config) + "\n")
+  puts "Froze the test split at #{fingerprint[0, 12]}."
+  exit 0
+elsif config["frozen"] != fingerprint
+  failed = true
+  puts "The test split changed since it was frozen (#{config['frozen'].to_s[0, 12]}, now #{fingerprint[0, 12]}): " \
+       "log why in training/TEST-RULES.md, then run with --freeze."
+end
+
+novel = found.count { |_task, owners| owners.empty? }
+puts "\n#{novel} novel, #{found.size - novel} transfer, of #{found.size} test tasks. No test request is a near-copy of a train request." unless failed
+
+if write
+  config["transfer"] = found.reject { |_task, owners| owners.empty? }
+  File.write(TARGETS, JSON.pretty_generate(config) + "\n")
+  puts "Wrote the transfer map to #{TARGETS.delete_prefix("#{ROOT}/")}."
+  exit 0
+end
+exit(failed ? 1 : 0)
