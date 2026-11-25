@@ -144,9 +144,17 @@ held-out set. The apps share one `Gemfile.lock`, so one image runs them all.
 
 Its `test` split is every Mender and Gazette task. No other split uses those
 apps, so they check whether training carries over to a larger codebase the
-model has never seen, which validation (same apps as training) can't. They
-are mostly about Rails APIs no training task uses. Never train or tune on
-them: run them before training starts and once per finished model.
+model has never seen, which validation (same apps as training) can't. Half
+are "novel", about a Rails API no training material uses; the other half are
+"transfer", asking again for an API a train task teaches
+([`test-targets.json`](test-targets.json) says which). The rules for using
+them, fixed before the first run, are in [`TEST-RULES.md`](TEST-RULES.md):
+never train or tune on them, run them once before training and once for the
+final model, and count a win only when the whole 95% range is above 0.
+
+```sh
+ruby training/bin/check-test-overlap    # groups match the data, no near-copied requests, test files unchanged
+```
 
 `bin/build-bench` adds them to the agentic bench, where the agent gets the
 whole app in `/app`. Before grading, the harness puts back the app's own
@@ -163,6 +171,18 @@ Every stage also writes `health.txt` with
 of attempts with a reply cut off at the output-token cap (usually a thinking
 loop), that hit the step or time limit, or that changed nothing, plus median
 steps and output tokens. Credit alone hid that RL round 3 had started looping.
+
+When the base model has a run of the same stage, it also writes `compare.txt`
+with [`bin/compare-runs`](bin/compare-runs): both models' scores on their
+shared tasks and a 95% range for the difference, from a paired bootstrap over
+tasks and attempts, split into novel and transfer on the test split. On
+validation, RL round 3 beat the base model by +0.30 (+0.10 to +0.49) and still
+gained nothing on the official benchmark, which is why validation doesn't get
+the last word.
+
+```sh
+ruby training/bin/compare-runs runs/bench-qwen3.5-27b-test runs/bench-qwen3.5-27b-rl4-test
+```
 
 ## SFT: train on the model's own successes
 

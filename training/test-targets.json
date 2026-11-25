@@ -185,5 +185,6 @@
       "cleanup-job-discard",
       "payment-job-give-up"
     ]
-  }
+  },
+  "frozen": "9c1ecaa88351383153d7a1925c675a3b9a9287b4c7124af28254c4d590d8dacd"
 }

@@ -16,9 +16,15 @@
 # (request, starter, answers, tests, attacks) and the source of every app a
 # train-split app task uses. Validation and sealed tasks aren't trained on.
 #
-#   ruby training/bin/check-test-overlap [--verbose] [--write]
+# 3. Frozen. The test tasks and their apps must match the fingerprint in
+#    test-targets.json, so they can't change after a model has been run on them
+#    without a line in the looks log of training/TEST-RULES.md.
+#
+#   ruby training/bin/check-test-overlap [--verbose] [--write] [--freeze]
 #
 # --write rewrites the "transfer" map in test-targets.json from the data.
+# --freeze records the test split's current fingerprint.
+require "digest"
 require "json"
 require "set"
 
@@ -26,6 +32,7 @@ ROOT = File.expand_path("../..", __dir__)
 TARGETS = File.join(ROOT, "training/test-targets.json")
 verbose = ARGV.delete("--verbose")
 write = ARGV.delete("--write")
+freeze = ARGV.delete("--freeze")
 
 def read_json(path) = JSON.parse(File.read(File.join(ROOT, path)))
 
@@ -95,6 +102,26 @@ apps["test"].each do |task|
     failed = true
     puts "#{task}: request is #{(similarity * 100).round}% the same as #{path}"
   end
+end
+
+test_dirs = apps["test"].map { "training/app-tasks/#{_1}" } + test_apps.map { "training/apps/#{_1}" }
+fingerprint = Digest::SHA256.new
+# Tracked files only: running an app leaves ignored log/, tmp/ and storage/ behind.
+tracked = IO.popen(["git", "-C", ROOT, "ls-files", "-z", "--", *test_dirs], &:read).split("\0")
+abort "git ls-files found no test files" if tracked.empty?
+tracked.sort.each do |path|
+  fingerprint << path << "\0" << Digest::SHA256.file(File.join(ROOT, path)).hexdigest << "\n"
+end
+fingerprint = fingerprint.hexdigest
+if freeze
+  config["frozen"] = fingerprint
+  File.write(TARGETS, JSON.pretty_generate(config) + "\n")
+  puts "Froze the test split at #{fingerprint[0, 12]}."
+  exit 0
+elsif config["frozen"] != fingerprint
+  failed = true
+  puts "The test split changed since it was frozen (#{config['frozen'].to_s[0, 12]}, now #{fingerprint[0, 12]}): " \
+       "log why in training/TEST-RULES.md, then run with --freeze."
 end
 
 novel = found.count { |_task, owners| owners.empty? }
